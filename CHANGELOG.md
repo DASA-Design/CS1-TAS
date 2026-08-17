@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.1.0 (2026-08-17)
+
+- Render the formulas across the documentation (`case-study.md`, `procedure.md`,
+  `report.md`) as GitHub-flavored LaTeX math so they display correctly.
+- Add the method-result figures (analytic, stochastic, dimensional, comparison,
+  search) under `data/img/` as both PNG and SVG.
+
 ## v1.0.0 (2026-08-17)
 
 Initial public release of the CS-1 TAS DASA evaluation.
