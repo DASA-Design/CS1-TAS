@@ -4,7 +4,7 @@ This document explains how the CS-1 Tele Assistance System (TAS) experiment is r
 
 CS-1 is DASA Phase 1, model-only. It models TAS as a loss-network queue and decides two quality-attribute requirements across four adaptations, then asks a constructive design question. Three independent predictive pipelines (analytic closed-form, stochastic simulation, dimensional coefficient bounds) compute the same verdicts, and a coefficient-guided search constructs a configuration that clears both requirements.
 
-The locked envelope for every run is `lambda_z = 323` req/s (the E-QS canonical inflection, `rho_b <= 0.65`), `K = 16`, and `c = 1`.
+The locked envelope for every run is $\lambda_z = 323$ req/s (the E-QS canonical inflection, $\rho_b \leq 0.65$), $K = 16$, and $c = 1$.
 
 ---
 
@@ -18,7 +18,7 @@ Pureur and Bittner name three properties of an effective experiment. CS-1 instan
 
 - **Atomic** (one question at a time). S1 isolates the **retry** lever and S2 isolates the **selection** lever. The aggregate is the deliberate co-variation of the two. Isolating retry from selection is what lets the experiment attribute the availability change to retry and the response-time change to selection, then show that the aggregate combines both. Bundling them would forfeit that attribution.
 - **Timely** (fast feedback). Analytic scoring solves all four adaptations in seconds, and the search's coarse candidate grid finishes in a few seconds, so a design question returns inside a single working session.
-- **Unambiguous** (a pre-stated, measurable success criterion). R1 <= 1.0% and R2 <= 26 ms are fixed before the runs. Each verdict is a PASS or FAIL bit per cell, not a narrative judgement.
+- **Unambiguous** (a pre-stated, measurable success criterion). R1 $\leq 1.0\%$ and R2 $\leq 26$ ms are fixed before the runs. Each verdict is a PASS or FAIL bit per cell, not a narrative judgement.
 
 The atomic property is the methodological heart of CS-1. It is why the project models S2 as selection only (no failover), even though the original case-study source bundles sequential failover into its Select-Reliable strategy. Isolating the lever is the point; the aggregate then recombines retry and selection, and that recombination corresponds to the source's bundled strategy.
 
@@ -45,10 +45,10 @@ Three hypotheses are decided. Tolerances were fixed before the runs and are moti
 Decision rule: accept if and only if all 24 cells (3 methods x 4 adaptations x 2 requirements) are congruent.
 
 **H2. Numerical congruence within simulation noise.** Analytic and dimensional are identical by construction, since the dimensional method reads its end-to-end response time and failure fraction from the same closed-form solve. The testable gap is analytic versus stochastic simulation.
-Tolerance: `|delta W_e2e| <= 5%` (the M/M/c/K approximation budget) and `|delta eps_e2e| <= 0.1 pp`.
+Tolerance: $\lvert \delta W_{e2e} \rvert \leq 5\%$ (the M/M/c/K approximation budget) and $\lvert \delta \varepsilon_{e2e} \rvert \leq 0.1$ pp.
 This is a real falsification opportunity: the simulation is an independent solver that simulates the network rather than re-running the analytic formula, so it could have disagreed by more than 5% and rejected the equivalence claim.
 
-**H3. DASA bounds predict the operational verdict (falsifiable).** The dimensionless predicate `sigma_arch < sigma_R2 AND eta_arch < eta_R1` should coincide with the analytic R1 AND R2 verdict on every candidate across a region containing both passes and fails.
+**H3. DASA bounds predict the operational verdict (falsifiable).** The dimensionless predicate $\sigma_{\mathrm{arch}} < \sigma_{R2}$ AND $\eta_{\mathrm{arch}} < \eta_{R1}$ should coincide with the analytic R1 AND R2 verdict on every candidate across a region containing both passes and fails.
 Decision rule: accept if and only if the confusion matrix is diagonal over a non-empty mixed region.
 
 An experiment whose tolerance is loose enough to absorb any disagreement is not an experiment. The 5% budget on H2 is tight enough that the independent solver could have failed it.
@@ -57,9 +57,9 @@ An experiment whose tolerance is loose enough to absorb any disagreement is not 
 
 ## 3. The model in brief
 
-Failures are modelled as routing leaks absorbed at an explicit absorbing node, `FAIL_{1}` (node index 13, giving 14 nodes per scenario). Availability is read directly from flow rather than from a lost-call exposure product. The failed fraction is `eps_e2e = lambda_FAIL / lambda_z`, which drives **R1**. The effective successful-completion rate is `chi_out = lambda_z - lambda_FAIL`, and the end-to-end response time is `W_e2e = L_net / chi_out` (where `L_net` excludes the FAIL node), which drives **R2**. Failure is applied at the three workflow handlers with a dispatch-weighted pool failure, and retry (present in S1 and the aggregate) is a handler split-loop that shrinks the residual give-up flow multiplicatively. The provenance for the response-time relation is the General Response Time Law (Denning and Buzen, 1978).
+Failures are modelled as routing leaks absorbed at an explicit absorbing node, `FAIL_{1}` (node index 13, giving 14 nodes per scenario). Availability is read directly from flow rather than from a lost-call exposure product. The failed fraction is $\varepsilon_{e2e} = \lambda_{\mathrm{FAIL}} / \lambda_z$, which drives **R1**. The effective successful-completion rate is $\chi_{\mathrm{out}} = \lambda_z - \lambda_{\mathrm{FAIL}}$, and the end-to-end response time is $W_{e2e} = L_{\mathrm{net}} / \chi_{\mathrm{out}}$ (where $L_{\mathrm{net}}$ excludes the FAIL node), which drives **R2**. Failure is applied at the three workflow handlers with a dispatch-weighted pool failure, and retry (present in S1 and the aggregate) is a handler split-loop that shrinks the residual give-up flow multiplicatively. The provenance for the response-time relation is the General Response Time Law (Denning and Buzen, 1978).
 
-The two requirements under test are **R1 (Availability)**, failure rate <= 1.0% (Weyns 2015, as the fraction `0.01`), and **R2 (Performance)**, response time <= 26 ms (Camara 2023). A third case-spec requirement, R3 (cost minimisation), is retired in this project; CS-1 is scoped to the R1 and R2 trade-off and does not model the cost axis. The full derivation of the loss-network formulas, the dimensionless re-framing (the `theta`, `sigma`, `eta`, `phi` coefficients and the viable-region bounds `sigma_R2` and `eta_R1`), and the validity envelope is in [report.md](report.md).
+The two requirements under test are **R1 (Availability)**, failure rate $\leq 1.0\%$ (Weyns 2015, as the fraction $0.01$), and **R2 (Performance)**, response time $\leq 26$ ms (Camara 2023). A third case-spec requirement, R3 (cost minimisation), is retired in this project; CS-1 is scoped to the R1 and R2 trade-off and does not model the cost axis. The full derivation of the loss-network formulas, the dimensionless re-framing (the $\theta$, $\sigma$, $\eta$, $\phi$ coefficients and the viable-region bounds $\sigma_{R2}$ and $\eta_{R1}$), and the validity envelope is in [report.md](report.md).
 
 ---
 
@@ -89,7 +89,7 @@ The notebooks run in pipeline order and are named with a numbered prefix so they
 
 ### 4.3 03-dimensional.ipynb (Model, re-framed)
 
-**Idea.** Characterise TAS dimensionally for every adaptation. For each artifact, PyDASA derives Pi-groups from the relevant variables on the Time / Structure / Data basis, and four operationally meaningful coefficients are built from them: `theta = L/K` (Occupancy), `sigma = W*lambda/K` (Stall), `eta = chi*K/(mu*c)` (Effective-yield), and `phi = M_act/M_buf` (Memory-usage). The dimensional method does not produce a different verdict; it re-frames the same threshold check as a viable-region predicate in scale-free dimensionless space, which is what makes designs comparable across architectures.
+**Idea.** Characterise TAS dimensionally for every adaptation. For each artifact, PyDASA derives Pi-groups from the relevant variables on the Time / Structure / Data basis, and four operationally meaningful coefficients are built from them: $\theta = L/K$ (Occupancy), $\sigma = W \cdot \lambda / K$ (Stall), $\eta = \chi \cdot K / (\mu \cdot c)$ (Effective-yield), and $\phi = M_{\mathrm{act}} / M_{\mathrm{buf}}$ (Memory-usage). The dimensional method does not produce a different verdict; it re-frames the same threshold check as a viable-region predicate in scale-free dimensionless space, which is what makes designs comparable across architectures.
 
 The persisted dimensional solution carries a seeded 5% white-noise robustness pass. Section 1 runs with `noise_scope="coefficients"`, so the coefficients written to disk (and the figures, and the operating points that 04 and 05 later load) carry the 5% input noise, while the operational layer and the R1 and R2 verdict are solved on clean inputs. That keeps the persisted verdict bit-identical to analytic (which is what lets 06 report an exact analytic-equals-dimensional match) while the dimensionless operating points already reflect realistic input uncertainty. See [report.md](report.md) for how the noise is injected on the independent variables so the dimensional coupling is preserved.
 
@@ -115,7 +115,7 @@ Each swept point carries the same seeded 5% white-noise disturbance on the indep
 
 **Idea.** The four published adaptations were authored by hand. This notebook asks a constructive question: navigating the design space by DASA's dimensionless coefficients alone, can we find a configuration that clears both requirements at the locked envelope and improves on the published aggregate? Two levers are searched jointly, dispatch weights (a continuous simplex over how traffic splits across a pool of service variants) and retry depth (a discrete choice per workflow handler between retrying and giving up on the first attempt).
 
-**Method.** Stage 1 picks the three lowest-`eps` service variants per type from the catalogue. Stage 2 runs a derivative-free coordinate-exchange descent that, at each step, takes the move that most reduces the binding dimensionless coefficient, refining the step size from coarse to fine. The two objectives map directly onto the yoly axes: `sigma_arch` tracks R2 and `eta_arch` tracks R1, so minimising both moves the operating point toward the origin, into the viable box `sigma_arch < sigma_R2 AND eta_arch < eta_R1`. The result is cross-validated by re-optimising the same bi-objective with an independent off-the-shelf optimiser (scipy's COBYLA); agreement between the DASA-native descent and scipy shows the method integrates with standard tooling. The search's selection runs on the clean flow model, so the persisted winner is noise-free; a separate step re-evaluates the chosen winner under one seeded input perturbation as a robustness confirmation, without re-searching.
+**Method.** Stage 1 picks the three lowest-$\varepsilon$ service variants per type from the catalogue. Stage 2 runs a derivative-free coordinate-exchange descent that, at each step, takes the move that most reduces the binding dimensionless coefficient, refining the step size from coarse to fine. The two objectives map directly onto the yoly axes: $\sigma_{\mathrm{arch}}$ tracks R2 and $\eta_{\mathrm{arch}}$ tracks R1, so minimising both moves the operating point toward the origin, into the viable box $\sigma_{\mathrm{arch}} < \sigma_{R2}$ AND $\eta_{\mathrm{arch}} < \eta_{R1}$. The result is cross-validated by re-optimising the same bi-objective with an independent off-the-shelf optimiser (scipy's COBYLA); agreement between the DASA-native descent and scipy shows the method integrates with standard tooling. The search's selection runs on the clean flow model, so the persisted winner is noise-free; a separate step re-evaluates the chosen winner under one seeded input perturbation as a robustness confirmation, without re-searching.
 
 **Inputs.** `data/config/catalogue/tas.json` (the service catalogue), `data/config/profile/opti.json` (the TAS skeleton from the aggregate scenario), and `data/config/method/dimensional.json`.
 

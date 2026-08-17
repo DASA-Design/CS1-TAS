@@ -30,7 +30,7 @@
 - limited design-decision transparency;
 - limited guidance on how reported results are achieved.
 
-The case answers all five through explicit numeric targets (failure rate `R1 ≤ 0.03 %`, response time `R2 ≤ 26 ms`), a documented *Reliability* vs. *Cost* trade-off with two effector strategies, and a clean *MAPE-K* (Monitor-Analyse-Plan-Execute-Knowledge) split that makes design-decision provenance traceable.
+The case answers all five through explicit numeric targets (failure rate $R1 \leq 0.03\%$, response time $R2 \leq 26 \text{ ms}$), a documented *Reliability* vs. *Cost* trade-off with two effector strategies, and a clean *MAPE-K* (Monitor-Analyse-Plan-Execute-Knowledge) split that makes design-decision provenance traceable.
 
 **Bounded system (Coombs [5]).**
 
@@ -82,14 +82,14 @@ Figure CS1.1. *TAS* context diagram.
 |    `R2`    | The average response time should not exceed `26 ms`      |
 |    `R3`    | Subject to `R1` and `R2`, the cost should be minimised |
 
-`R3` is a **conditional optimisation**: cost minimisation is only meaningful when `R1` and `R2` are simultaneously satisfied. The per-scenario thresholds that trigger adaptation at runtime are `Rfail ≥ 0.03 %` for the service-failure scenario and `tavg ≥ 27.0 ms` for the response-time-variability scenario.
+`R3` is a **conditional optimisation**: cost minimisation is only meaningful when `R1` and `R2` are simultaneously satisfied. The per-scenario thresholds that trigger adaptation at runtime are $R_{fail} \geq 0.03\%$ for the service-failure scenario and $t_{avg} \geq 27.0 \text{ ms}$ for the response-time-variability scenario.
 
 **Earlier requirement framing (Weyns and Iftikhar 2016).** Seven years before [10], Weyns and Iftikhar [13] expressed the adaptation goals with different thresholds and a different optimisation objective:
 
 |           **Id**           | **[13] 2016 framing**                                      | **[10] 2023 framing**                               |
 | :-------------------------------: | ---------------------------------------------------------------- | --------------------------------------------------------- |
-|              `R1`              | `failureRate ≤ 0.15 × 10⁻³`                                | `failure rate ≤ 0.03 %`                                |
-|              `R2`              | `averageCost ≤ 8 × 10⁻³`                                   | `response time ≤ 26 ms`                                |
+|              `R1`              | $\text{failureRate} \leq 0.15 \times 10^{-3}$                                | $\text{failure rate} \leq 0.03\%$                                |
+|              `R2`              | $\text{averageCost} \leq 8 \times 10^{-3}$                                   | $\text{response time} \leq 26 \text{ ms}$                                |
 |              `R3`              | Subject to `R1` and `R2`, **minimise `failureRate`** | Subject to `R1` and `R2`, **minimise `cost`** |
 | `R3'` (three-quality extension) | Minimise `serviceTime`                                         | (not defined in [10])                                     |
 
@@ -185,7 +185,7 @@ The workflow exhibits three decision points that create non-trivial failure-prop
 
 Figure CS1.2. *TAS* workflow, reconstructed from Figure 1 of [1].
 
-**Stochastic workflow parameterisation [13].** The original [1] paper leaves the user-action probabilities implicit. Weyns and Iftikhar [13] later publish a stochastic model of the *TAS* environment that fills this gap. Each time tick the user either triggers a vital-parameters sample with probability `p_ANALYSIS` or presses the panic button with probability `p_EMERGENCY = 1 − p_ANALYSIS`. A typical evaluation setting in [13] uses `p_EMERGENCY = 0.25` (one-quarter of ticks are emergency calls). After the *Medical Analysis Service* returns its result, approximately `66 %` of the non-`patientOK` outcomes route to the *Drug Service* (`changeDrug` or `changeDose`) and approximately `34 %` route to the *Alarm Service* (`sendAlarm`). These probabilities drive the stochastic-timed-automaton simulations used to estimate expected failure rate, cost, and service time at runtime.
+**Stochastic workflow parameterisation [13].** The original [1] paper leaves the user-action probabilities implicit. Weyns and Iftikhar [13] later publish a stochastic model of the *TAS* environment that fills this gap. Each time tick the user either triggers a vital-parameters sample with probability $p_{ANALYSIS}$ or presses the panic button with probability $p_{EMERGENCY} = 1 - p_{ANALYSIS}$. A typical evaluation setting in [13] uses $p_{EMERGENCY} = 0.25$ (one-quarter of ticks are emergency calls). After the *Medical Analysis Service* returns its result, approximately `66 %` of the non-`patientOK` outcomes route to the *Drug Service* (`changeDrug` or `changeDose`) and approximately `34 %` route to the *Alarm Service* (`sendAlarm`). These probabilities drive the stochastic-timed-automaton simulations used to estimate expected failure rate, cost, and service time at runtime.
 
 ### ii. Runtime Architecture: ReSeP Components on the Managed Side
 
@@ -250,7 +250,7 @@ Figure CS1.4. *TAS* adaptability overview: *MAPE-K* feedback loop over the manag
 
 *Cost per invocation* values are expressed in the nominal units of the *TAS* exemplar; [1] does not state an explicit currency. The cost-reliability inversion is deliberate: cheaper alternatives such as *Alarm Service 3* at `2.65` per invocation have higher failure rates (`0.18`), so the adaptation engine is forced to arbitrate between *Cost* and *Reliability* rather than pick a dominant service.
 
-**Intermediate 15-service catalogue [13].** Weyns and Iftikhar 2016 introduce a fifteen-service catalogue (`5 AS + 5 MAS + 5 DS`) declared by the third-party service providers. Table I of [13] gives the initial `F_rate` (failure rate) and `Cost` (per invocation, nominal units) for each concrete service, reproduced verbatim below. This is the canonical source for the `\epsilon` values our PyDASA artifacts in `data/config/profile/dflt.json` and `data/config/profile/opti.json` carry for `AS_1..3`, `MAS_1..3`, `MAS_4`, `AS_4`, `DS_3`, and `DS_1`.
+**Intermediate 15-service catalogue [13].** Weyns and Iftikhar 2016 introduce a fifteen-service catalogue (`5 AS + 5 MAS + 5 DS`) declared by the third-party service providers. Table I of [13] gives the initial `F_rate` (failure rate) and `Cost` (per invocation, nominal units) for each concrete service, reproduced verbatim below. This is the canonical source for the $\varepsilon$ values our PyDASA artifacts in `data/config/profile/dflt.json` and `data/config/profile/opti.json` carry for `AS_1..3`, `MAS_1..3`, `MAS_4`, `AS_4`, `DS_3`, and `DS_1`.
 
 **Table I, Third-party service profiles for TAS [13]:**
 
@@ -272,13 +272,11 @@ Figure CS1.4. *TAS* adaptability overview: *MAPE-K* feedback loop over the manag
 **Two types of uncertainty [13] Section III:**
 
 1. **Action-probability uncertainty.** The `75/25` and `66/34` workflow splits are not stationary; they can drift in operation. Our methods treat the routing matrix as fixed at the time of the analytic / stochastic / dimensional solve.
-2. **Service-quality uncertainty.** Concrete service availability, failure rates, and response times are subject to change with load, network, and other conditions. Our methods treat `\mu` and `\epsilon` as fixed setpoints from `artifacts`; the prototype's `specs` layer is the place where this drift would be parameterised.
+2. **Service-quality uncertainty.** Concrete service availability, failure rates, and response times are subject to change with load, network, and other conditions. Our methods treat $\mu$ and $\varepsilon$ as fixed setpoints from `artifacts`; the prototype's `specs` layer is the place where this drift would be parameterised.
 
 **Table II of [13]** elaborates the same catalogue with runtime-observed queue length and response time, used in the simulation models in §V of that paper. The same paper defines service time as
 
-```
-Service Time = Response Time + Waiting Time in Queue
-```
+$$\text{Service Time} = \text{Response Time} + \text{Waiting Time in Queue}$$
 
 This decomposition is what makes the `R3'` extension in [13] target `serviceTime` rather than response time in isolation: a configuration can satisfy `R1` and `R2` and still have a high service time if pending invocations accumulate in the queue. The 2016 profile sits between [1]'s seven-service catalogue and [10]'s nine-service catalogue.
 
@@ -335,7 +333,7 @@ Summary of the six-step experiment, reproduced from Table IV of [1]:
 
 *Select Reliable* eliminates failures entirely at roughly `36 %` higher cost than *No Adaptation*. *Retry* halves the failure rate at roughly `22 %` higher cost. Neither strategy dominates; the choice depends on the stakeholder's *Reliability* vs. *Cost* utility function.
 
-Only scenario `S1` is quantified in Table IV of [1]. Weyns and Iftikhar [13] §V report a more substantial experimental setup for the same `S1`-style scenario: `10 000` invocations per experiment, `1 000`-invocation moving window, and boxplots for the relative standard error of the mean at `RSEM = 5 %` and `RSEM = 10 %`. The `RSEM = 5 %` setting roughly doubles the adaptation time of the `RSEM = 10 %` setting, which is the source-documented accuracy-versus-latency trade-off of the simulation approach.
+Only scenario `S1` is quantified in Table IV of [1]. Weyns and Iftikhar [13] §V report a more substantial experimental setup for the same `S1`-style scenario: `10 000` invocations per experiment, `1 000`-invocation moving window, and boxplots for the relative standard error of the mean at $\text{RSEM} = 5\%$ and $\text{RSEM} = 10\%$. The $\text{RSEM} = 5\%$ setting roughly doubles the adaptation time of the $\text{RSEM} = 10\%$ setting, which is the source-documented accuracy-versus-latency trade-off of the simulation approach.
 
 ### viii. Tactics Identified (Bass 3rd ed. [6])
 
@@ -470,7 +468,7 @@ Following Wohlin [8], we log the principal decisions that shape how this case st
 
 **Resolved decisions (P1-P5).**
 
-- **P1 (longer runs).** Weyns and Iftikhar [13] §V-B publish a `10 000`-invocation experiment with a `1 000`-invocation moving window and two accuracy settings (`RSEM = 5 %`, `RSEM = 10 %`).
+- **P1 (longer runs).** Weyns and Iftikhar [13] §V-B publish a `10 000`-invocation experiment with a `1 000`-invocation moving window and two accuracy settings ($\text{RSEM} = 5\%$, $\text{RSEM} = 10\%$).
 - **P2 (random seed).** Not stated in [1], [10], or [13]. Closed as unresolvable from current sources.
 - **P3 (full UPPAAL model).** [13] Figures 4, 5, 6, 7, and 11 publish the full *STA* model set.
 - **P4 (`S3`-`S5` via ReSeP effectors).** Only `S1`, `S2`, `S3` supported by the published effector set; `S4` and `S5` require a workflow-rewriting effector that [1] does not document.

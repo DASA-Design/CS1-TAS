@@ -2,7 +2,7 @@
 
 This is the DASA (Dimensional Analysis for Software Architecture) evaluation of the Tele Assistance System (TAS). It records how TAS was modelled dimensionally, what the runs found across four self-adaptation strategies plus a constructive search, and what the results mean for the two quality-attribute requirements under test (Availability and Performance). The modelling derivation and the cross-validated results live together here, mirroring the dissertation's evaluation chapter. For the architecture itself (what TAS is, its workflow, its service catalogue) see [case-study.md](case-study.md); for the experimental method and the six-notebook pipeline that produced these numbers see [procedure.md](procedure.md).
 
-The locked operating envelope for every number below is `lambda_z = 323` req/s, `K = 16`, `c = 1`, with dimensional bounds `sigma_R2 ~ 0.525` and `eta_R1 ~ 34.80`.
+The locked operating envelope for every number below is $\lambda_z = 323$ req/s, $K = 16$, $c = 1$, with dimensional bounds $\sigma_{R2} \approx 0.525$ and $\eta_{R1} \approx 34.80$.
 
 ---
 
@@ -12,7 +12,7 @@ CS-1 models TAS as a 14-node loss-network queue (13 service stations plus one ab
 
 The result is a clean performance-versus-availability trade-off. Retry buys availability at a performance cost, the reliable-service swap buys performance but not enough availability, and only the combination of the two clears both bounds.
 
-| Solution | Failure rate (`eps_e2e`) | R1 (<= 1.0 %) | Response time (`W_e2e`) | R2 (<= 26 ms) |
+| Solution | Failure rate ($\varepsilon_{e2e}$) | R1 ($\leq$ 1.0 %) | Response time ($W_{e2e}$) | R2 ($\leq$ 26 ms) |
 |---|---|---|---|---|
 | baseline (no adaptation) | 14.82 % | FAIL | 25.74 ms | PASS |
 | S1 (Retry) | 0.20 % | PASS | 27.72 ms | FAIL |
@@ -32,13 +32,13 @@ The modelling step produces the formal apparatus (queue model, SAFDUs, dimension
 
 ### 2.1 Formal model and adaptation encoding
 
-The model commits to steady-state M/M/c/K at every node, embedded in an open Jackson queueing network with a per-adaptation routing matrix `P`. At the locked envelope every station is single-server (`c_j = 1`) with uniform capacity (`K_j = 16`). Per-call atomic failure rate `eps_j` enters the routing matrix as self-loops or feedback edges, encoded per adaptation.
+The model commits to steady-state M/M/c/K at every node, embedded in an open Jackson queueing network with a per-adaptation routing matrix $P$. At the locked envelope every station is single-server ($c_j = 1$) with uniform capacity ($K_j = 16$). Per-call atomic failure rate $\varepsilon_j$ enters the routing matrix as self-loops or feedback edges, encoded per adaptation.
 
-**13-node baseline topology.** Six TAS composite-workflow stages (`TAS_{1}` entry and dispatch, `TAS_{2}` and `TAS_{3}` and `TAS_{4}` internal handlers, `TAS_{5}` and `TAS_{6}` exit aggregators) orchestrate three third-party atomic-service pools: Medical Analysis (`MAS_{1}`, `MAS_{2}`, `MAS_{3}`), Alarm (`AS_{1}`, `AS_{2}`, `AS_{3}`), and Drug (`DS_{1}`). The two stochastic branch probabilities (emergency-path probability 0.25 at the entry, and the post-analysis 0.66 / 0.34 drug-versus-alarm split) come from the case-study reconstruction; the uniform pool-dispatch rule (0.33 / 0.34 / 0.33) and the per-atomic failure-retry self-loops come from the service-registry semantics and the published catalogue. Under S2 and the aggregate the catalogue swap adds three substitution targets (`MAS_{4}` at `mu = 880`, `AS_{4}` at `mu = 210`, and the reliable drug provider), so those two scenarios carry 16 service nodes.
+**13-node baseline topology.** Six TAS composite-workflow stages (`TAS_{1}` entry and dispatch, `TAS_{2}` and `TAS_{3}` and `TAS_{4}` internal handlers, `TAS_{5}` and `TAS_{6}` exit aggregators) orchestrate three third-party atomic-service pools: Medical Analysis (`MAS_{1}`, `MAS_{2}`, `MAS_{3}`), Alarm (`AS_{1}`, `AS_{2}`, `AS_{3}`), and Drug (`DS_{1}`). The two stochastic branch probabilities (emergency-path probability 0.25 at the entry, and the post-analysis 0.66 / 0.34 drug-versus-alarm split) come from the case-study reconstruction; the uniform pool-dispatch rule (0.33 / 0.34 / 0.33) and the per-atomic failure-retry self-loops come from the service-registry semantics and the published catalogue. Under S2 and the aggregate the catalogue swap adds three substitution targets (`MAS_{4}` at $\mu = 880$, `AS_{4}` at $\mu = 210$, and the reliable drug provider), so those two scenarios carry 16 service nodes.
 
-**Visit-ratio solve.** Setting `V = 1` at the workflow entry and solving `V_j = q_{0j} + sum_i V_i * q_{ij}` (the operational-analysis visit-ratio equations, Denning and Buzen 1978) over the baseline routing matrix propagates the per-node visit ratios. The slowest atomic accumulates the highest normalised visit-weighted demand:
+**Visit-ratio solve.** Setting $V = 1$ at the workflow entry and solving $V_j = q_{0j} + \sum_i V_i \cdot q_{ij}$ (the operational-analysis visit-ratio equations, Denning and Buzen 1978) over the baseline routing matrix propagates the per-node visit ratios. The slowest atomic accumulates the highest normalised visit-weighted demand:
 
-| Node | `V_j` | `mu_j` (1/s) | `D_j = V_j / mu_j` (s/req) |
+| Node | $V_j$ | $\mu_j$ (1/s) | $D_j = V_j / \mu_j$ (s/req) |
 |---|---|---|---|
 | `MAS_{1}` | 0.281 | 182 | 1.55e-3 |
 | `MAS_{2}` | 0.274 | 532 | 0.52e-3 |
@@ -48,39 +48,35 @@ The model commits to steady-state M/M/c/K at every node, embedded in an open Jac
 | `AS_{3}` | 0.203 | 1579 | 0.13e-3 |
 | Drug service | 0.495 | 545 | 0.91e-3 |
 
-**Bottleneck.** `MAS_{3}` at `mu = 150` 1/s is the slowest server and the binding node at baseline, with visit ratio `V_b = 0.302` and per-request demand `D_b = 2.01e-3` s/req. The internal TAS workflow stages run at `mu = 750` 1/s, set to 1.5 times the binding sensitivity floor of 497 1/s (the value at which the highest-visit TAS stage would displace `MAS_{3}`). The bottleneck identification is provably invariant to that internal-rate choice for any rate above 497 1/s, which is why the placeholder does not affect the verdict. The internal-rate assumption is recorded as a construct-validity threat in Section 8.
+**Bottleneck.** `MAS_{3}` at $\mu = 150$ 1/s is the slowest server and the binding node at baseline, with visit ratio $V_b = 0.302$ and per-request demand $D_b$ = 2.01e-3 s/req. The internal TAS workflow stages run at $\mu = 750$ 1/s, set to 1.5 times the binding sensitivity floor of 497 1/s (the value at which the highest-visit TAS stage would displace `MAS_{3}`). The bottleneck identification is provably invariant to that internal-rate choice for any rate above 497 1/s, which is why the placeholder does not affect the verdict. The internal-rate assumption is recorded as a construct-validity threat in Section 8.
 
-**Arrival-rate envelope.** The open-Jackson stability condition `rho_b = V_b * lambda_z / (c_b * mu_b) < 1` binds first at `MAS_{3}`. The analytical saturation throughput, at which `rho_b -> 1` and the network leaves the stable regime, is
+**Arrival-rate envelope.** The open-Jackson stability condition $\rho_b = V_b \cdot \lambda_z / (c_b \cdot \mu_b) < 1$ binds first at `MAS_{3}`. The analytical saturation throughput, at which $\rho_b \to 1$ and the network leaves the stable regime, is
 
-```
-lambda_z,max = c_b * mu_b / V_b = 1 * 150 / 0.302 = 497 req/s at the TAS_{1} entry.
-```
+$$\lambda_{z,\max} = \frac{c_b \cdot \mu_b}{V_b} = \frac{1 \cdot 150}{0.302} = 497 \text{ req/s at the } \mathrm{TAS}_{1} \text{ entry.}$$
 
-The locked design point sits at the E-QS canonical inflection `rho_b <= 0.65`, beyond which `W` and `L` leave the linear steady-state regime:
+The locked design point sits at the E-QS canonical inflection $\rho_b \leq 0.65$, beyond which $W$ and $L$ leave the linear steady-state regime:
 
-```
-lambda_z = 0.65 * lambda_z,max = 0.65 * 497 ~ 323 req/s.
-```
+$$\lambda_z = 0.65 \cdot \lambda_{z,\max} = 0.65 \cdot 497 \approx 323 \text{ req/s.}$$
 
-The derivation chain is therefore: routing matrix, then visit ratios, then per-node service demand, then bottleneck identification, then analytical saturation `lambda_z,max = 497`, then the operating-point ceiling at 323 req/s.
+The derivation chain is therefore: routing matrix, then visit ratios, then per-node service demand, then bottleneck identification, then analytical saturation $\lambda_{z,\max} = 497$, then the operating-point ceiling at 323 req/s.
 
-**K-sizing.** `K = 16` keeps the per-node blocking probability `P_K = (1 - rho) * rho^K / (1 - rho^{K+1})` well below the per-node R1 budget at the operating ceiling. At `rho_b = 0.65` and `K = 16`, `P_K ~ 0.036 %`, roughly four times below the per-node R1 budget (the 1.0 % network-level R1 distributed across about seven workflow hops), so any overload above the envelope expresses as utilisation saturation rather than buffer truncation. This gives the locked envelope `(lambda_z = 323` req/s, `K = 16`, `c = 1)`.
+**K-sizing.** $K = 16$ keeps the per-node blocking probability $P_K = (1 - \rho) \cdot \rho^K / (1 - \rho^{K+1})$ well below the per-node R1 budget at the operating ceiling. At $\rho_b = 0.65$ and $K = 16$, $P_K \approx 0.036$ %, roughly four times below the per-node R1 budget (the 1.0 % network-level R1 distributed across about seven workflow hops), so any overload above the envelope expresses as utilisation saturation rather than buffer truncation. This gives the locked envelope $(\lambda_z = 323$ req/s, $K = 16$, $c = 1)$.
 
 **Adaptation encoding.** The per-scenario routing matrix is the modelling knob that distinguishes the four adaptations:
 
 - **baseline.** Per-call failures encoded as self-loops at the originating atomic; uniform pool dispatch. No adaptation in effect.
 - **S1 (Retry).** Per-call failures encoded as feedback edges back to the composite dispatcher, bounded by a maximum-attempts cap; uniform pool dispatch preserved, so failures re-dispatch across the full pool. Maps to a composition of Exception, Removal from Service, and Dynamic Lookup tactics (Bass et al.), not a single tactic.
-- **S2 (Select-Reliable).** Catalogue swap (`MAS_{3}` to `MAS_{4}`, `AS_{3}` to `AS_{4}`) plus inverse-`eps` dispatch that concentrates load on the most reliable equivalent (0.25 / 0.44 / 0.31 across the MAS pool); per-call failures encoded as self-loops with no retry catch, modelled as sequential first-success traversal of the ordered equivalence list. Maps to Active Redundancy.
-- **aggregate.** Union of S1 and S2: catalogue swap plus inverse-`eps` dispatch plus both self-loops (residual) and feedback edges (retry catches survivors of the concentrated dispatch).
+- **S2 (Select-Reliable).** Catalogue swap (`MAS_{3}` to `MAS_{4}`, `AS_{3}` to `AS_{4}`) plus inverse-$\varepsilon$ dispatch that concentrates load on the most reliable equivalent (0.25 / 0.44 / 0.31 across the MAS pool); per-call failures encoded as self-loops with no retry catch, modelled as sequential first-success traversal of the ordered equivalence list. Maps to Active Redundancy.
+- **aggregate.** Union of S1 and S2: catalogue swap plus inverse-$\varepsilon$ dispatch plus both self-loops (residual) and feedback edges (retry catches survivors of the concentrated dispatch).
 
-The four diagrams below differ only in the routing matrix applied, not in the composite connectors themselves. Each atomic node is an M/M/c/K station with `c = 1`, `K = 16` at the locked envelope (13 nodes at baseline, 16 under S2 and the aggregate after the substitution targets are added).
+The four diagrams below differ only in the routing matrix applied, not in the composite connectors themselves. Each atomic node is an M/M/c/K station with $c = 1$, $K = 16$ at the locked envelope (13 nodes at baseline, 16 under S2 and the aggregate after the substitution targets are added).
 
 | | |
 |:---:|:---:|
 | ![baseline queue-network topology](img/cs_tas_qn_baseline.png) | ![S1 Retry queue-network topology](img/cs_tas_qn_s1retry.png) |
 | **baseline** (self-loops at originating atomic; uniform dispatch) | **S1 (Retry)** (feedback edges to composite dispatcher; bounded retry) |
 | ![S2 Select-Reliable queue-network topology](img/cs_tas_qn_s2reliable.png) | ![aggregate queue-network topology](img/cs_tas_qn_aggregated.png) |
-| **S2 (Select-Reliable)** (catalogue swap; inverse-`eps` dispatch) | **aggregate** (catalogue swap + inverse-`eps` dispatch + self-loops + feedback edges) |
+| **S2 (Select-Reliable)** (catalogue swap; inverse-$\varepsilon$ dispatch) | **aggregate** (catalogue swap + inverse-$\varepsilon$ dispatch + self-loops + feedback edges) |
 
 **Figure 1.** Per-adaptation queue-network topology for TAS.
 
@@ -88,24 +84,24 @@ The four diagrams below differ only in the routing matrix applied, not in the co
 
 Failures are modelled as routing leaks absorbed at an explicit absorbing node `FAIL_{1}`, so availability is read directly from flow rather than from a lost-call exposure product:
 
-- `V_j = lambda_j / lambda_z` (visit ratio),
-- `eps_e2e = lambda_FAIL / lambda_z` (the failed fraction absorbed at the sink), which drives R1,
-- `chi_out = lambda_z - lambda_FAIL` (effective successful-completion rate),
-- `W_e2e = L_net / chi_out` (end-to-end response time, `L_net` excluding the FAIL node), which drives R2.
+- $V_j = \lambda_j / \lambda_z$ (visit ratio),
+- $\varepsilon_{e2e} = \lambda_{\mathrm{FAIL}} / \lambda_z$ (the failed fraction absorbed at the sink), which drives R1,
+- $\chi_{\mathrm{out}} = \lambda_z - \lambda_{\mathrm{FAIL}}$ (effective successful-completion rate),
+- $W_{e2e} = L_{\mathrm{net}} / \chi_{\mathrm{out}}$ (end-to-end response time, $L_{\mathrm{net}}$ excluding the FAIL node), which drives R2.
 
-Service self-loops are kept as load-only overload (`chi = (1 + eps) * lambda`, conserving flow), so error-handling overhead adds queueing delay without itself leaking availability. Failure is applied at the three workflow handlers (`TAS_{4}` medical, `TAS_{5}` alarm, `TAS_{6}` drug) with dispatch-weighted pool failure `f = sum_i p_i * eps_i`. Retry (S1, aggregate) is a handler split-loop `r = (1 - f^{k-1}) / (1 - f^k)` with `k = 3`, so the residual give-up flow shrinks multiplicatively to about `f^k`. Provenance: the General Response Time Law (Denning and Buzen 1978).
+Service self-loops are kept as load-only overload ($\chi = (1 + \varepsilon) \cdot \lambda$, conserving flow), so error-handling overhead adds queueing delay without itself leaking availability. Failure is applied at the three workflow handlers (`TAS_{4}` medical, `TAS_{5}` alarm, `TAS_{6}` drug) with dispatch-weighted pool failure $f = \sum_i p_i \cdot \varepsilon_i$. Retry (S1, aggregate) is a handler split-loop $r = (1 - f^{k-1}) / (1 - f^k)$ with $k = 3$, so the residual give-up flow shrinks multiplicatively to about $f^k$. Provenance: the General Response Time Law (Denning and Buzen 1978).
 
 ### 2.3 SAFDUs and the dimensional matrix
 
-The Software Architecture Fundamental Dimensional Units are locked to `{S, T, D}`: Structure (countable elements such as instances, servers, queued messages), Time (rates and durations such as response time and service time), and Data (payload such as request size and buffer memory). The relevance list carries ten quantities mapped onto that basis:
+The Software Architecture Fundamental Dimensional Units are locked to $\{S, T, D\}$: Structure (countable elements such as instances, servers, queued messages), Time (rates and durations such as response time and service time), and Data (payload such as request size and buffer memory). The relevance list carries ten quantities mapped onto that basis:
 
-- `(lambda, chi, mu)` map to `[S * T^-1]` (arrival rate, throughput, service rate),
-- `(c, K, L)` map to `[S]` (parallel servers, capacity, queue length),
-- `W` maps to `[T]` (response time),
-- `(M_act, M_buf)` map to `[D]` (active and buffer memory),
-- `d_req` maps to `[D * S^-1]` (request data density).
+- $(\lambda, \chi, \mu)$ map to $[S \cdot T^{-1}]$ (arrival rate, throughput, service rate),
+- $(c, K, L)$ map to $[S]$ (parallel servers, capacity, queue length),
+- $W$ maps to $[T]$ (response time),
+- $(M_{\mathrm{act}}, M_{\mathrm{buf}})$ map to $[D]$ (active and buffer memory),
+- $d_{\mathrm{req}}$ maps to $[D \cdot S^{-1}]$ (request data density).
 
-The dimensional matrix is 10 variables by 3 SAFDUs with rank 3, so the Buckingham Pi Theorem yields `10 - 3 = 7` Pi-groups.
+The dimensional matrix is 10 variables by 3 SAFDUs with rank 3, so the Buckingham Pi Theorem yields $10 - 3 = 7$ Pi-groups.
 
 ### 2.4 Pi-groups and the four dimensionless coefficients
 
@@ -113,37 +109,35 @@ The seven computed Pi-groups reduce to four derived dimensionless coefficients (
 
 | DC | Name | Formula | Reading |
 |---|---|---|---|
-| `theta` | Occupancy | `L / K` | queue depth relative to capacity |
-| `sigma` | Stall | `W * lambda / K` | response-time-times-arrival, normalised by capacity |
-| `eta` | Effective yield | `K * chi / (c * mu)` | throughput efficiency |
-| `phi` | Memory efficiency | `M_act / M_buf` | active versus buffer memory |
+| $\theta$ | Occupancy | $L / K$ | queue depth relative to capacity |
+| $\sigma$ | Stall | $W \cdot \lambda / K$ | response-time-times-arrival, normalised by capacity |
+| $\eta$ | Effective yield | $K \cdot \chi / (c \cdot \mu)$ | throughput efficiency |
+| $\phi$ | Memory efficiency | $M_{\mathrm{act}} / M_{\mathrm{buf}}$ | active versus buffer memory |
 
 The Pi-group expressions are invariant across adaptations (the Buckingham guarantee); only the setpoints move.
 
 ### 2.5 Dimensional R1/R2 bounds
 
-R1 and R2 lift into DC space via the algebraic identities `sigma = W * lambda / K` (so R2 sits on `sigma`) and, substituting `chi = lambda * (1 + eps)` into `eta`, R1 sits on `eta` via the per-call failure rate. The `(1 + eps)` factor reflects that a component which raises an error still produces an answer through the retry or substitution path, so throughput includes the recovery overhead. The worst-case parameter convention picks peak offered load `lambda_j,max`, smallest buffer `K_j,min`, slowest server `mu_j,min` (the `MAS_{3}` bottleneck), and `c_j,min = 1`:
+R1 and R2 lift into DC space via the algebraic identities $\sigma = W \cdot \lambda / K$ (so R2 sits on $\sigma$) and, substituting $\chi = \lambda \cdot (1 + \varepsilon)$ into $\eta$, R1 sits on $\eta$ via the per-call failure rate. The $(1 + \varepsilon)$ factor reflects that a component which raises an error still produces an answer through the retry or substitution path, so throughput includes the recovery overhead. The worst-case parameter convention picks peak offered load $\lambda_{j,\max}$, smallest buffer $K_{j,\min}$, slowest server $\mu_{j,\min}$ (the `MAS_{3}` bottleneck), and $c_{j,\min} = 1$:
 
-```
-sigma_R2 = W_R2 * lambda_j,max / K_j,min
-eta_R1   = lambda_j,max * (1 + eps_R1) * K_j,min / (mu_j,min * c_j,min)
-```
+$$\sigma_{R2} = W_{R2} \cdot \lambda_{j,\max} / K_{j,\min}$$
 
-with `W_R2 = 0.026` s (Camara 2023) and `eps_R1 = 0.01` (Weyns and Calinescu 2015). Evaluated at the locked envelope (`lambda_z = 323`, `K_j,min = 16`, `mu_j,min = 150`, `c_j,min = 1`):
+$$\eta_{R1} = \lambda_{j,\max} \cdot (1 + \varepsilon_{R1}) \cdot K_{j,\min} / (\mu_{j,\min} \cdot c_{j,\min})$$
+
+with $W_{R2} = 0.026$ s (Camara 2023) and $\varepsilon_{R1} = 0.01$ (Weyns and Calinescu 2015). Evaluated at the locked envelope ($\lambda_z = 323$, $K_{j,\min} = 16$, $\mu_{j,\min} = 150$, $c_{j,\min} = 1$):
 
 | Bound | Formula | Locked-envelope value |
 |---|---|---|
-| `sigma_R2` (R2 axis) | `0.026 * 323 / 16` | `~ 0.525` |
-| `eta_R1` (R1 axis) | `323 * 1.01 * 16 / (150 * 1)` | `~ 34.80` |
+| $\sigma_{R2}$ (R2 axis) | $0.026 \cdot 323 / 16$ | $\approx 0.525$ |
+| $\eta_{R1}$ (R1 axis) | $323 \cdot 1.01 \cdot 16 / (150 \cdot 1)$ | $\approx 34.80$ |
 
 These two bounds are architectural properties of the baseline TAS configuration and stay fixed across all four adaptations so cross-method, cross-adaptation comparison is anchored to a common yardstick. The architecture-level operating coefficients projected against them are
 
-```
-sigma_arch = W_e2e * lambda_z / K_j,min
-eta_arch   = lambda_z * (1 + eps_e2e) * K_j,min / (mu_j,min * c_j,min)
-```
+$$\sigma_{\mathrm{arch}} = W_{e2e} \cdot \lambda_z / K_{j,\min}$$
 
-and the pass conditions are algebraic restatements of R1 and R2: `sigma_arch < sigma_R2 <=> W_e2e < W_R2 <=> R2 PASS`, and `eta_arch < eta_R1 <=> eps_e2e < eps_R1 <=> R1 PASS`. The dimensional verdict is the dimensionless lift of the operational verdict by construction; the two readings agree by algebra, and the dimensional method's distinctive value is that its chart geometry is scale-free.
+$$\eta_{\mathrm{arch}} = \lambda_z \cdot (1 + \varepsilon_{e2e}) \cdot K_{j,\min} / (\mu_{j,\min} \cdot c_{j,\min})$$
+
+and the pass conditions are algebraic restatements of R1 and R2: $\sigma_{\mathrm{arch}} < \sigma_{R2} \iff W_{e2e} < W_{R2} \iff \text{R2 PASS}$, and $\eta_{\mathrm{arch}} < \eta_{R1} \iff \varepsilon_{e2e} < \varepsilon_{R1} \iff \text{R1 PASS}$. The dimensional verdict is the dimensionless lift of the operational verdict by construction; the two readings agree by algebra, and the dimensional method's distinctive value is that its chart geometry is scale-free.
 
 ### 2.6 Viable-region predicate
 
@@ -151,16 +145,16 @@ An operating point satisfies the E-QS only if all six clauses hold simultaneousl
 
 | Coefficient | Bound | Scope |
 |---|---|---|
-| `sigma_arch` | `< sigma_R2 (~ 0.525)` | architecture-level (R2 lift) |
-| `eta_arch` | `< eta_R1 (~ 34.80)` | architecture-level (R1 lift) |
-| `theta_j` | `< 0.3` | per-node occupancy |
-| `sigma_j` | `< 0.3` | per-node stall |
-| `rho_j` | `<= 0.65` | per-node utilisation (E-QS inflection) |
-| `phi_j` | `<= 1` | per-node memory efficiency |
+| $\sigma_{\mathrm{arch}}$ | $< \sigma_{R2} (\approx 0.525)$ | architecture-level (R2 lift) |
+| $\eta_{\mathrm{arch}}$ | $< \eta_{R1} (\approx 34.80)$ | architecture-level (R1 lift) |
+| $\theta_j$ | $< 0.3$ | per-node occupancy |
+| $\sigma_j$ | $< 0.3$ | per-node stall |
+| $\rho_j$ | $\leq 0.65$ | per-node utilisation (E-QS inflection) |
+| $\phi_j$ | $\leq 1$ | per-node memory efficiency |
 
 The predicate is a conjunction: failing any one clause rejects the operating point.
 
-**Reference-frame note.** The architecture-level bounds are derived from baseline worst-case parameters and held fixed across adaptations for cross-comparison legitimacy. Under S2 and the aggregate the catalogue swap replaces `MAS_{3}`, so the true `mu_min` rises (to the drug service at `mu = 250`); recomputing `eta_R1` in each adaptation's own design space would tighten the bound. The fixed-frame reading answers "does the adapted TAS still satisfy R1 at the baseline operating point?"; the per-adaptation frame is a refinement option (Section 8).
+**Reference-frame note.** The architecture-level bounds are derived from baseline worst-case parameters and held fixed across adaptations for cross-comparison legitimacy. Under S2 and the aggregate the catalogue swap replaces `MAS_{3}`, so the true $\mu_{\min}$ rises (to the drug service at $\mu = 250$); recomputing $\eta_{R1}$ in each adaptation's own design space would tighten the bound. The fixed-frame reading answers "does the adapted TAS still satisfy R1 at the baseline operating point?"; the per-adaptation frame is a refinement option (Section 8).
 
 ---
 
@@ -168,8 +162,8 @@ The predicate is a conjunction: failing any one clause rejects the operating poi
 
 Two quality-attribute requirements are decided, treated as falsifiable hypotheses rather than assertions:
 
-- **R1 (Availability):** failure rate `eps_e2e <= 1.0 %` (Weyns and Calinescu 2015 fraction `0.01`).
-- **R2 (Performance):** response time `W_e2e <= 26.0 ms` (Camara 2023).
+- **R1 (Availability):** failure rate $\varepsilon_{e2e} \leq 1.0$ % (Weyns and Calinescu 2015 fraction `0.01`).
+- **R2 (Performance):** response time $W_{e2e} \leq 26.0$ ms (Camara 2023).
 
 A third requirement in the original case spec, R3 (cost minimisation subject to R1 and R2), is retired in this project; the cost axis is not modelled, and the experiment is scoped to the R1/R2 trade-off.
 
@@ -183,7 +177,7 @@ The case-study sources carry three different R1 framings (Weyns 1.0 %, Weyns and
 
 Network-level metrics from the analytic solve (`data/results/analytic/<adp>/{dflt,opti}.json`):
 
-| Adaptation | `L_net` | `chi_out` (req/s) | `eps_e2e` | `W_e2e` | R1 | R2 |
+| Adaptation | $L_{\mathrm{net}}$ | $\chi_{\mathrm{out}}$ (req/s) | $\varepsilon_{e2e}$ | $W_{e2e}$ | R1 | R2 |
 |---|---|---|---|---|---|---|
 | baseline | 7.082 | 275.1 | 14.82 % | 25.74 ms | FAIL | PASS |
 | S1 (Retry) | 8.657 | 312.4 | 0.20 % | 27.72 ms | PASS | FAIL |
@@ -192,15 +186,15 @@ Network-level metrics from the analytic solve (`data/results/analytic/<adp>/{dfl
 
 Reading the trade-off (which recasts the cost-versus-reliability tension of Weyns and Calinescu as performance-versus-availability):
 
-- **Retry recovers availability multiplicatively but inflates load.** S1 drops `eps_e2e` from 14.82 % to 0.20 % (residual about `f^k`), but its re-dispatch traffic pushes `W_e2e` to 27.72 ms, just over the 26 ms ceiling.
-- **Selection lowers latency but cannot clear 1 % alone.** Swapping in the lower-`eps` `MAS_{4}` and `AS_{4}` variants drops `W_e2e` to 18.53 ms, but a single attempt leaves S2 at 10.42 % failure.
+- **Retry recovers availability multiplicatively but inflates load.** S1 drops $\varepsilon_{e2e}$ from 14.82 % to 0.20 % (residual about $f^k$), but its re-dispatch traffic pushes $W_{e2e}$ to 27.72 ms, just over the 26 ms ceiling.
+- **Selection lowers latency but cannot clear 1 % alone.** Swapping in the lower-$\varepsilon$ `MAS_{4}` and `AS_{4}` variants drops $W_{e2e}$ to 18.53 ms, but a single attempt leaves S2 at 10.42 % failure.
 - **The aggregate combines both.** Reliable dispatch keeps the load down (19.40 ms) while retry recovers availability (0.07 %), so it is the only hand-authored adaptation to pass both.
 
 ### 4.2 Five-solution comparison (the search winner as a fifth design)
 
-[06-comparison.ipynb](../06-comparison.ipynb) places the search winner (Section 6) alongside the four hand-authored adaptations and reports each solution's distance from the aggregate, the best published design. Deltas are `solution - aggregate`; a negative `dW` means faster, a negative `d_eps` means more available.
+[06-comparison.ipynb](../06-comparison.ipynb) places the search winner (Section 6) alongside the four hand-authored adaptations and reports each solution's distance from the aggregate, the best published design. Deltas are $\text{solution} - \text{aggregate}$; a negative $dW$ means faster, a negative $d\varepsilon$ means more available.
 
-| Solution | `W_e2e` [ms] | `eps_e2e` [%] | R1 | R2 | dW vs S1&S2 [ms] | d_eps vs S1&S2 [pp] |
+| Solution | $W_{e2e}$ [ms] | $\varepsilon_{e2e}$ [%] | R1 | R2 | $dW$ vs S1&S2 [ms] | $d\varepsilon$ vs S1&S2 [pp] |
 |---|---|---|---|---|---|---|
 | No Adaptation | 25.740 | 14.8216 | FAIL | PASS | 6.339 | 14.7502 |
 | S1: Retry | 27.715 | 0.2048 | PASS | FAIL | 8.314 | 0.1334 |
@@ -212,9 +206,9 @@ Of the five, only the aggregate and the search winner clear both bounds. The win
 
 ### 4.3 Dimensional viable region
 
-The same four adaptations placed against the E-QS bounds (`sigma_R2 ~ 0.525`, `eta_R1 ~ 34.80`):
+The same four adaptations placed against the E-QS bounds ($\sigma_{R2} \approx 0.525$, $\eta_{R1} \approx 34.80$):
 
-| Adaptation | `sigma_arch` (R2 axis) | `eta_arch` (R1 axis) | inside R2 box | inside R1 box |
+| Adaptation | $\sigma_{\mathrm{arch}}$ (R2 axis) | $\eta_{\mathrm{arch}}$ (R1 axis) | inside R2 box | inside R1 box |
 |---|---|---|---|---|
 | baseline | 0.52 | 39.6 | yes (just) | no |
 | S1 | 0.56 | 34.5 | no | yes |
@@ -227,8 +221,8 @@ Only the aggregate sits inside both boxes, matching the operational verdict of S
 
 The verdict records carry per-node top-5 driver contributions as evidence. The top driver is congruent across methods:
 
-- **R1 driver: `TAS_{4}`**, the medical handler that leaks to FAIL, in every adaptation. Its share of `eps_e2e`: baseline 0.092, S1 0.0014, S2 0.069, aggregate 0.0006.
-- **R2 driver: `MAS_{3}`** under baseline and S1 (share 0.26 and 0.285), then **`DS_{1}`** (the reliable drug service) under S2 and the aggregate (share 0.25 and 0.28). The catalogue swap removes the `mu = 150` `MAS_{3}` bottleneck, leaving the drug service as the slowest surviving stage. This confirms the case-study bottleneck claim in the running model.
+- **R1 driver: `TAS_{4}`**, the medical handler that leaks to FAIL, in every adaptation. Its share of $\varepsilon_{e2e}$: baseline 0.092, S1 0.0014, S2 0.069, aggregate 0.0006.
+- **R2 driver: `MAS_{3}`** under baseline and S1 (share 0.26 and 0.285), then **`DS_{1}`** (the reliable drug service) under S2 and the aggregate (share 0.25 and 0.28). The catalogue swap removes the $\mu = 150$ `MAS_{3}` bottleneck, leaving the drug service as the slowest surviving stage. This confirms the case-study bottleneck claim in the running model.
 
 ---
 
@@ -240,7 +234,7 @@ The verdict records carry per-node top-5 driver contributions as evidence. The t
 
 Every scenario solved by each predictive method, read from `data/results/<method>/<adp>/requirements.json`. The search winner is scored by the analytic and dimensional pipelines only; it is not re-simulated in the DES (marked `n/r`, named as future work).
 
-| Scenario | Method | `eps_e2e` [%] | R1 (<= 1.0 %) | `W_e2e` [ms] | R2 (<= 26 ms) |
+| Scenario | Method | $\varepsilon_{e2e}$ [%] | R1 ($\leq$ 1.0 %) | $W_{e2e}$ [ms] | R2 ($\leq$ 26 ms) |
 |---|---|---|---|---|---|
 | baseline | Analytic | 14.8216 | FAIL | 25.740 | PASS |
 | baseline | Stochastic | 14.7478 | FAIL | 25.799 | PASS |
@@ -258,7 +252,7 @@ Every scenario solved by each predictive method, read from `data/results/<method
 | Search winner | Stochastic | n/r | n/r | n/r | n/r |
 | Search winner | Dimensional | 0.0290 | PASS | 19.850 | PASS |
 
-The verdict bits are congruent across all three methods for every one of the four adaptations: **24/24 cells agree** (3 methods by 4 adaptations by 2 requirements). Analytic and dimensional are bit-identical by construction (the dimensional method reads its `W_e2e` and `eps_e2e` from the same Jackson solve); the stochastic DES is an independent solver and lands on the same bits.
+The verdict bits are congruent across all three methods for every one of the four adaptations: **24/24 cells agree** (3 methods by 4 adaptations by 2 requirements). Analytic and dimensional are bit-identical by construction (the dimensional method reads its $W_{e2e}$ and $\varepsilon_{e2e}$ from the same Jackson solve); the stochastic DES is an independent solver and lands on the same bits.
 
 ![Cross-method verdict grid across five solutions and three methods](img/verdict_grid.png)
 
@@ -268,18 +262,18 @@ The verdict bits are congruent across all three methods for every one of the fou
 
 Since analytic and dimensional coincide exactly, the only testable numerical gap is analytic versus stochastic (`stochastic - analytic`, positive means the DES over-predicts):
 
-| Adaptation | delta `W_e2e` (ms) | delta `W_e2e` (%) | delta `eps_e2e` (pp) |
+| Adaptation | $\Delta W_{e2e}$ (ms) | $\Delta W_{e2e}$ (%) | $\Delta \varepsilon_{e2e}$ (pp) |
 |---|---|---|---|
 | baseline | +0.059 | +0.23 % | -0.074 |
 | S1 | -0.293 | -1.06 % | +0.011 |
 | S2 | +0.113 | +0.61 % | -0.034 |
 | aggregate | -0.120 | -0.62 % | -0.000 |
 
-All residuals fall inside the pre-stated tolerance (`|delta W_e2e| <= 1.06 %` against the 5 % M/M/c/K approximation budget; `|delta eps_e2e| <= 0.074 pp` against 0.1 pp). Every node's analytic operating point also lands inside the stochastic 95 % confidence band (10 replications by 10000 invocations), so the aggregate agreement is principled rather than incidental.
+All residuals fall inside the pre-stated tolerance ($\lvert \Delta W_{e2e} \rvert \leq 1.06$ % against the 5 % M/M/c/K approximation budget; $\lvert \Delta \varepsilon_{e2e} \rvert \leq 0.074$ pp against 0.1 pp). Every node's analytic operating point also lands inside the stochastic 95 % confidence band (10 replications by 10000 invocations), so the aggregate agreement is principled rather than incidental.
 
 ![Cross-solution metric bars for response time and failure rate](img/metrics_bars.png)
 
-**Figure 3.** Cross-solution metric bars (`W_e2e` and `eps_e2e`, five solutions, three method bars each, with threshold lines).
+**Figure 3.** Cross-solution metric bars ($W_{e2e}$ and $\varepsilon_{e2e}$, five solutions, three method bars each, with threshold lines).
 
 ---
 
@@ -287,23 +281,23 @@ All residuals fall inside the pre-stated tolerance (`|delta W_e2e| <= 1.06 %` ag
 
 [05-search.ipynb](../05-search.ipynb) tests a design hypothesis: navigating by DASA's dimensionless coefficients alone, can we find a configuration that clears both requirements and beats the published aggregate? Two levers are searched jointly: dispatch weights (continuous simplex) and retry depth (discrete grid over the three handlers).
 
-**Method.** Stage 1 picks the three lowest-`eps` service variants per type from the catalogue. Stage 2 runs a derivative-free coordinate-exchange descent that takes the move most reducing the binding dimensionless coefficient, refining step size coarse-to-fine.
+**Method.** Stage 1 picks the three lowest-$\varepsilon$ service variants per type from the catalogue. Stage 2 runs a derivative-free coordinate-exchange descent that takes the move most reducing the binding dimensionless coefficient, refining step size coarse-to-fine.
 
-**Winner** (`data/results/search/winner/winner.json`): dispatch concentrated on the lowest-`eps` variant (`MAS_{2}` and `AS_{2}` at weight 0.9993) with retry depth `k = 3` on all three handlers. Status `feasible`:
+**Winner** (`data/results/search/winner/winner.json`): dispatch concentrated on the lowest-$\varepsilon$ variant (`MAS_{2}` and `AS_{2}` at weight 0.9993) with retry depth $k = 3$ on all three handlers. Status `feasible`:
 
-- `eps_e2e = 0.029 %` (R1 PASS, about 2.5 times more available than the aggregate's 0.07 %),
-- `W_e2e = 19.85 ms` (R2 PASS),
-- `sigma_arch = 0.401 < 0.525` and `eta_arch = 34.46 < 34.80` (inside both E-QS boxes).
+- $\varepsilon_{e2e} = 0.029$ % (R1 PASS, about 2.5 times more available than the aggregate's 0.07 %),
+- $W_{e2e} = 19.85$ ms (R2 PASS),
+- $\sigma_{\mathrm{arch}} = 0.401 < 0.525$ and $\eta_{\mathrm{arch}} = 34.46 < 34.80$ (inside both E-QS boxes).
 
-**The binding lever is retry, not selection.** Selection-only dispatch cannot clear R1 at any weighting (the per-service `eps` catalogue is the floor); retry on the availability-binding handlers drives the leaked flow below 1 %. The Pareto front makes this explicit: selection-only optima cluster at high `eps_e2e` (right of the R1 bound), and retry pulls the non-dominated frontier left across it.
+**The binding lever is retry, not selection.** Selection-only dispatch cannot clear R1 at any weighting (the per-service $\varepsilon$ catalogue is the floor); retry on the availability-binding handlers drives the leaked flow below 1 %. The Pareto front makes this explicit: selection-only optima cluster at high $\varepsilon_{e2e}$ (right of the R1 bound), and retry pulls the non-dominated frontier left across it.
 
 ![Pareto front of failure rate versus response time coloured by retry configuration](img/pareto_r1_r2.png)
 
 **Figure 4.** Pareto front (R1 versus R2): the trade-off cloud coloured by retry configuration, with the non-dominated front and the winner star.
 
-**External cross-validation.** An off-the-shelf optimiser (`scipy.optimize.minimize`, COBYLA) re-optimising the same bi-objective lands on the same retry configuration and operating point, agreeing within `0.004 ms` on `W_e2e` (measured `0.00377 ms`) and `3.8e-5 pp` on `eps_e2e`. The custom coefficient-guided search is confirmed by standard tooling.
+**External cross-validation.** An off-the-shelf optimiser (`scipy.optimize.minimize`, COBYLA) re-optimising the same bi-objective lands on the same retry configuration and operating point, agreeing within `0.004 ms` on $W_{e2e}$ (measured `0.00377 ms`) and `3.8e-5 pp` on $\varepsilon_{e2e}$. The custom coefficient-guided search is confirmed by standard tooling.
 
-**Predictive payoff.** Across the full candidate cloud, the DASA bound predicate `sigma_arch < sigma_R2 AND eta_arch < eta_R1` matches the analytic R1-AND-R2 verdict on every candidate (100 % accuracy over a region containing both passes and fails). This is the closest CS-1 comes to a Popperian check that survives a deliberate attempt to break it: the confusion matrix could have come back off-diagonal and did not.
+**Predictive payoff.** Across the full candidate cloud, the DASA bound predicate $\sigma_{\mathrm{arch}} < \sigma_{R2}$ AND $\eta_{\mathrm{arch}} < \eta_{R1}$ matches the analytic R1-AND-R2 verdict on every candidate (100 % accuracy over a region containing both passes and fails). This is the closest CS-1 comes to a Popperian check that survives a deliberate attempt to break it: the confusion matrix could have come back off-diagonal and did not.
 
 ![Winner yoly overlay of baseline, aggregate, and winner clouds](img/yc_winner_overlay.png)
 
@@ -321,26 +315,26 @@ Headline numbers traced to their authoritative source. Status legend: `match` (e
 
 | # | Claim | Source | Status |
 |---|---|---|---|
-| 1 | baseline `eps_e2e` = 14.82 % | analytic/baseline/requirements.json | match (0.14822) |
-| 2 | S1 `eps_e2e` = 0.20 % | analytic/s1/requirements.json | match (0.002048) |
-| 3 | S2 `eps_e2e` = 10.42 % | analytic/s2/requirements.json | match (0.10422) |
-| 4 | aggregate `eps_e2e` = 0.07 % | analytic/aggregate/requirements.json | match (0.000714) |
-| 5 | baseline `W_e2e` = 25.74 ms | analytic/baseline/requirements.json | match (0.025740 s) |
-| 6 | S1 `W_e2e` = 27.72 ms | analytic/s1/requirements.json | match (0.027715 s) |
-| 7 | aggregate `W_e2e` = 19.40 ms | analytic/aggregate/requirements.json | match (0.019401 s) |
+| 1 | baseline $\varepsilon_{e2e}$ = 14.82 % | analytic/baseline/requirements.json | match (0.14822) |
+| 2 | S1 $\varepsilon_{e2e}$ = 0.20 % | analytic/s1/requirements.json | match (0.002048) |
+| 3 | S2 $\varepsilon_{e2e}$ = 10.42 % | analytic/s2/requirements.json | match (0.10422) |
+| 4 | aggregate $\varepsilon_{e2e}$ = 0.07 % | analytic/aggregate/requirements.json | match (0.000714) |
+| 5 | baseline $W_{e2e}$ = 25.74 ms | analytic/baseline/requirements.json | match (0.025740 s) |
+| 6 | S1 $W_{e2e}$ = 27.72 ms | analytic/s1/requirements.json | match (0.027715 s) |
+| 7 | aggregate $W_{e2e}$ = 19.40 ms | analytic/aggregate/requirements.json | match (0.019401 s) |
 | 8 | only the aggregate passes both | all requirements.json | features coincide (3 methods) |
 | 9 | 24/24 cells congruent | analytic/stochastic/dimensional | match (identical bits) |
 | 10 | analytic == dimensional exactly | both requirements.json | match (bit-identical) |
-| 11 | `|delta W_e2e| <= 1.06 %` (stoch vs an) | computed, Section 5.2 | match (1.06 % max, S1) |
-| 12 | `|delta eps_e2e| <= 0.074 pp` | computed, Section 5.2 | match (0.074 pp max, baseline) |
-| 13 | winner `eps_e2e` ~ 0.029 % | search/winner/winner.json | match (0.0002904) |
-| 14 | winner `W_e2e` ~ 19.85 ms | search/winner/winner.json | match (0.019850 s) |
+| 11 | $\lvert \Delta W_{e2e} \rvert \leq 1.06$ % (stoch vs an) | computed, Section 5.2 | match (1.06 % max, S1) |
+| 12 | $\lvert \Delta \varepsilon_{e2e} \rvert \leq 0.074$ pp | computed, Section 5.2 | match (0.074 pp max, baseline) |
+| 13 | winner $\varepsilon_{e2e}$ ~ 0.029 % | search/winner/winner.json | match (0.0002904) |
+| 14 | winner $W_{e2e}$ ~ 19.85 ms | search/winner/winner.json | match (0.019850 s) |
 | 15 | scipy agrees within 0.004 ms | search/winner/winner.json | match (0.00377 ms) |
 | 16 | R1 = 1.0 %, R2 = 26 ms | data/reference + catalogue | match (0.01 / 0.026) |
-| 17 | `MAS_{3}` mu=150, eps=0.18 (bottleneck) | catalogue/tas.json | match (150 / 0.18) |
+| 17 | `MAS_{3}` $\mu=150$, $\varepsilon=0.18$ (bottleneck) | catalogue/tas.json | match (150 / 0.18) |
 | 18 | `MAS_{3}` is the system bottleneck | R2 contributions | features coincide (lowest mu, top R2 driver) |
 | 19 | R1 driver `TAS_{4}` every scenario | requirements.json contributions | features coincide (all four) |
-| 20 | `sigma_R2` ~ 0.525, `eta_R1` ~ 34.80 | search/winner/winner.json bounds | match (0.524875 / 34.7979) |
+| 20 | $\sigma_{R2}$ ~ 0.525, $\eta_{R1}$ ~ 34.80 | search/winner/winner.json bounds | match (0.524875 / 34.7979) |
 
 ### Case-study-to-model mappings (stated, not auto-resolved)
 
@@ -356,24 +350,24 @@ Headline numbers traced to their authoritative source. Status legend: `match` (e
 
 1. **Cross-method congruence is confirmation, not falsification.** Three solvers agreeing within tolerance shows mutual consistency under shared assumptions; it does not falsify the predictive claim against a real deployed system. Internal triangulation is a strong check, but measuring reality is a separate activity CS-1 does not perform.
 2. **Model-based scope throughout.** Every number comes from a closed-form solve, a DES of that same model, or its dimensionless re-framing. The DES is an independent solver that cross-checks the closed form, but it shares the model's assumptions and cannot falsify them against reality.
-3. **M/M/c/K steady-state commitment.** Closed-form tractability excludes general service-time distributions (M/G/c/K), multi-class BCMP networks, and transient or non-stationary dynamics (warm-up, burst, failure-recovery transients). Real TAS-like response-time distributions are routinely heavy-tailed; an M/G extension would absorb that at the cost of the algebraic Pi-basis. The model targets the steady-state, normal-operation regime with `rho_j <= 0.65` at the bottleneck; any reading outside that regime is a misuse of the model, not a model failure.
+3. **M/M/c/K steady-state commitment.** Closed-form tractability excludes general service-time distributions (M/G/c/K), multi-class BCMP networks, and transient or non-stationary dynamics (warm-up, burst, failure-recovery transients). Real TAS-like response-time distributions are routinely heavy-tailed; an M/G extension would absorb that at the cost of the algebraic Pi-basis. The model targets the steady-state, normal-operation regime with $\rho_j \leq 0.65$ at the bottleneck; any reading outside that regime is a misuse of the model, not a model failure.
 4. **Jackson fixed-routing requirement.** Jackson's theorem holds only when the routing matrix is fixed per adaptation. The per-adaptation changes are folded into four discrete matrices; within any one, routing is fixed.
 5. **Statelessness assumption.** Both Retry and Select-Reliable assume atomic services are stateless and idempotent, so retried or parallel invocations are safe. Real clinical systems with stateful drug-history records would break this.
 6. **Select-Reliable reframed as sequential first-success.** The source describes it as parallel invocation; the model reframes it as sequential first-success traversal, which is what the published effector catalogue supports and what the Jackson decomposition models.
-7. **Unsourced internal workflow-stage rate.** None of the primary sources attach service times to the TAS workflow stages; the model needs some internal rate and uses `mu = 750` 1/s as a placeholder, 1.5 times above the binding sensitivity floor of 497 1/s. The bottleneck identification is provably invariant to this choice for any rate above 497 1/s.
+7. **Unsourced internal workflow-stage rate.** None of the primary sources attach service times to the TAS workflow stages; the model needs some internal rate and uses $\mu = 750$ 1/s as a placeholder, 1.5 times above the binding sensitivity floor of 497 1/s. The bottleneck identification is provably invariant to this choice for any rate above 497 1/s.
 8. **ms-scale interpretation.** Weyns and Iftikhar 2016 Table II is labelled "in sec" but read as ms per the Camara 2023 ms-canonical profile, justified by Camara's explicit-ms numbers and Weyns and Iftikhar's own 2.5 ms R2 example, but technically a re-interpretation of a primary source.
-9. **Failure placement and retry cap.** The loss network applies failure at the workflow handlers (not the atomic that returned the error) and fixes the retry cap at `k = 3` (the published TAS retry depth). Both are defensible modelling decisions, not derivations; a different placement or cap would redistribute per-node contributions or shift the S1/aggregate availability.
+9. **Failure placement and retry cap.** The loss network applies failure at the workflow handlers (not the atomic that returned the error) and fixes the retry cap at $k = 3$ (the published TAS retry depth). Both are defensible modelling decisions, not derivations; a different placement or cap would redistribute per-node contributions or shift the S1/aggregate availability.
 
 ### DASA methodology
 
 10. **Pi-group non-uniqueness.** Buckingham's theorem guarantees the existence of a Pi-basis but not its uniqueness; the seven Pi-groups and the four-DC reduction are a principled design choice on top of the basis, committed to consistently across the case for cross-case comparability.
 11. **The dimensional verdict is an algebraic restatement.** The pass conditions reduce by construction to R1 and R2 under the fixed `(K_min, c_min, mu_min)` reference frame, so the 100 % predictive accuracy is partly structural; the substantive empirical content is that the reference-frame choice stays stable across the whole candidate cloud. The dimensional method's independent value is its scale-free chart geometry, not an independent measurement of R1/R2.
-12. **Reference-frame fixing.** Denominator parameters are held at baseline's worst case across adaptations for comparability; moving them per-adaptation would change the dimensionless operating points (and tighten `eta_R1` under S2 and the aggregate) without changing the verdict.
+12. **Reference-frame fixing.** Denominator parameters are held at baseline's worst case across adaptations for comparability; moving them per-adaptation would change the dimensionless operating points (and tighten $\eta_{R1}$ under S2 and the aggregate) without changing the verdict.
 
 ### Results and generalisation
 
-13. **Envelope portability.** The locked `lambda_z = 323` req/s and `K = 16` derive against a specific `mu` vector and routing matrix; any change re-derives the bottleneck and the envelope, so the locked numbers are not portable across TAS variants.
-14. **Operating-ceiling choice.** The E-QS inflection `rho <= 0.65` is adopted as the single operating ceiling. The choice is justified but reasonably debatable: a tighter ceiling restores reaction-time margin at the cost of throughput headroom; a looser one erodes the steady-state margin.
+13. **Envelope portability.** The locked $\lambda_z = 323$ req/s and $K = 16$ derive against a specific $\mu$ vector and routing matrix; any change re-derives the bottleneck and the envelope, so the locked numbers are not portable across TAS variants.
+14. **Operating-ceiling choice.** The E-QS inflection $\rho \leq 0.65$ is adopted as the single operating ceiling. The choice is justified but reasonably debatable: a tighter ceiling restores reaction-time margin at the cost of throughput headroom; a looser one erodes the steady-state margin.
 15. **Single case, external validity.** TAS is one architectural pattern (a centralised MAPE-K loop over a composite service). The findings do not transfer directly to event-driven, data-intensive, or safety-critical systems with stateful atomic operations. Cross-case synthesis needs the second case study.
 16. **Scale-free transfer is future work.** The chapter validates QS satisfaction at the single locked operating point. Demonstrating that the same verdict transfers to other operating points without recomputing the DCs would require an arrival-rate sweep across rates and is named as future work.
 
@@ -413,7 +407,7 @@ The partial items share two roots: model-only scope (which holds back the runnin
 
 ## 10. Conclusion
 
-CS-1 treats the TAS quality-attribute requirements as falsifiable hypotheses about value and decides them with atomic, timely, unambiguous experiments. Three independent predictive pipelines agree on the verdict for all 24 (method, adaptation, requirement) cells and on the numbers within Monte-Carlo noise (`|delta W_e2e| <= 1.06 %`). The trade-off is clean: retry buys availability at a performance cost, selection buys performance but not enough availability, and only the aggregate satisfies both, which is the performance-versus-availability recast of the cost-versus-reliability tension Weyns and Calinescu frame. Constructively, a DASA-coefficient-guided search lands a configuration that clears both requirements and beats the best hand-authored design (0.029 % failure versus 0.07 %), confirmed independently by a scipy optimiser, with the dimensionless bounds predicting the analytic verdict on every candidate in a mixed region.
+CS-1 treats the TAS quality-attribute requirements as falsifiable hypotheses about value and decides them with atomic, timely, unambiguous experiments. Three independent predictive pipelines agree on the verdict for all 24 (method, adaptation, requirement) cells and on the numbers within Monte-Carlo noise ($\lvert \Delta W_{e2e} \rvert \leq 1.06$ %). The trade-off is clean: retry buys availability at a performance cost, selection buys performance but not enough availability, and only the aggregate satisfies both, which is the performance-versus-availability recast of the cost-versus-reliability tension Weyns and Calinescu frame. Constructively, a DASA-coefficient-guided search lands a configuration that clears both requirements and beats the best hand-authored design (0.029 % failure versus 0.07 %), confirmed independently by a scipy optimiser, with the dimensionless bounds predicting the analytic verdict on every candidate in a mixed region.
 
 The honest boundary is that this is confirmation plus a constructive result in model space. The SimPy DES is an independent solver that could have rejected the equivalence claim and did not, which makes the agreement meaningful, but it shares the model's assumptions, so CS-1 establishes internal consistency and a constructive demonstration, not a falsification against a real deployed system. The three case-study-to-model mappings (the pooled baseline, the selection-only S2, the retired R3) are the points where the running model deliberately departs from the source reconstruction, and each is stated explicitly.
 

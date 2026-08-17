@@ -117,8 +117,9 @@ jupyter nbconvert --to notebook --execute --inplace 0*.ipynb
 └── tests/             # pytest, mirrors src/
 ```
 
-Figures are written under `data/img/<method>/<adaptation>/` when the notebooks or
-methods run; they are not committed (regenerate them from the pipeline).
+The method-result figures are included under `data/img/` (`analytic`, `stochastic`,
+`dimensional`, `comparison`, `search`), as both PNG and SVG. They are regenerated in
+place when the notebooks or methods run.
 
 ## Data convention
 
