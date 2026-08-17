@@ -1,0 +1,42 @@
+# Force CRLF in the working tree on all platforms.
+# Auto-detect text vs binary, then force CRLF on text.
+* text=auto eol=crlf
+
+# Explicit text formats (CRLF)
+*.tex   text eol=crlf
+*.md    text eol=crlf
+*.json  text eol=crlf
+*.ipynb text eol=crlf
+*.py    text eol=crlf
+*.bib   text eol=crlf
+*.yml   text eol=crlf
+*.yaml  text eol=crlf
+*.toml  text eol=crlf
+*.cfg   text eol=crlf
+*.ini   text eol=crlf
+*.txt   text eol=crlf
+*.csv   text eol=crlf
+*.svg   text eol=crlf
+*.html  text eol=crlf
+*.css   text eol=crlf
+*.js    text eol=crlf
+*.ts    text eol=crlf
+*.sh    text eol=lf
+
+# Binary formats (no EOL conversion)
+*.png      binary
+*.jpg      binary
+*.jpeg     binary
+*.gif      binary
+*.pdf      binary
+*.xlsx     binary
+*.xls      binary
+*.docx     binary
+*.doc      binary
+*.zip      binary
+*.gz       binary
+*.tar      binary
+*.ttf      binary
+*.otf      binary
+*.woff     binary
+*.woff2    binary

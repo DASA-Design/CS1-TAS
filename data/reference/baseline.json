@@ -1,0 +1,21 @@
+{
+    "source": "Weyns & Calinescu 2015 (SEAMS) for R1; Camara 2023 for R2.",
+    "case_study": "TAS (Tele Assistance System)",
+    "notes": "R1 / R2 validation targets. Edit values here, not in code.",
+    "requirements": {
+        "R1": {
+            "metric": "fail_rate",
+            "threshold": 0.01,
+            "operator": "<=",
+            "units": "fraction",
+            "notes": "Failure rate <= 1% (Weyns 2015 SEAMS)"
+        },
+        "R2": {
+            "metric": "resp_time",
+            "threshold": 0.026,
+            "operator": "<=",
+            "units": "seconds",
+            "notes": "Response time <= 26 ms (Camara 2023)"
+        }
+    }
+}

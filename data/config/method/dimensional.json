@@ -1,0 +1,67 @@
+{
+    "seed": 42,
+    "fdus": [
+        {
+            "_idx": 0,
+            "_sym": "T",
+            "_fwk": "CUSTOM",
+            "_name": "Time",
+            "_unit": "s",
+            "description": "Temporal measurements (waiting time, service time, inter-arrival time)"
+        },
+        {
+            "_idx": 1,
+            "_sym": "S",
+            "_fwk": "CUSTOM",
+            "_name": "Structure",
+            "_unit": "req",
+            "description": "Structural resources (request count, queue positions, concurrent slots)"
+        },
+        {
+            "_idx": 2,
+            "_sym": "D",
+            "_fwk": "CUSTOM",
+            "_name": "Data",
+            "_unit": "kB",
+            "description": "Information content (payload size, buffer memory)"
+        }
+    ],
+    "coefficients": [
+        {
+            "symbol": "theta",
+            "expr_pattern": "{pi[6]} * {pi[3]}**(-1)",
+            "name": "Occupancy",
+            "description": "theta = L/K - queue fill ratio (0 empty, 1 full)"
+        },
+        {
+            "symbol": "sigma",
+            "expr_pattern": "{pi[0]} * {pi[3]}**(-1)",
+            "name": "Stall",
+            "description": "sigma = W*lambda/K - Stall / blocking indicator (queueing share of capacity)"
+        },
+        {
+            "symbol": "eta",
+            "expr_pattern": "{pi[2]} * {pi[3]} * {pi[1]}**(-1)",
+            "name": "Effective-yield",
+            "description": "eta = chi*K/(mu*c) - resource utilisation effectiveness"
+        },
+        {
+            "symbol": "phi",
+            "expr_pattern": "{pi[4]} * {pi[5]}**(-1)",
+            "name": "Memory-usage",
+            "description": "phi = M_act/M_buf - buffer occupancy"
+        }
+    ],
+    "sensitivity": {
+        "val_type": "mean",
+        "cat": "SYM"
+    },
+    "sweep_grid": {
+        "mu_factor": [0.5, 1.0, 1.5, 2.0],
+        "c": [1, 2, 4],
+        "K": [8, 16, 32, 64],
+        "lambda_steps": 10,
+        "lambda_factor_min": 0.05,
+        "util_threshold": 0.95
+    }
+}

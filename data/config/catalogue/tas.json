@@ -1,0 +1,30 @@
+{
+    "_meta": {
+        "source": "assets/notes/tgt/07/cstudies.md Table 7.3",
+        "primary": "Weyns and Iftikhar 2016 [13] Table I (failure rate F) + Table II (response time W, pending invocations L)",
+        "derived": "mu = M/M/1 inversion of Little's Law (L = W * lambda) and W = 1 / (mu - lambda); W read as ms; mu in 1/s",
+        "convention": "eps is per-invocation failure rate as a fraction (Weyns 2015 scale); mu is service rate in 1/s; W in ms; L is pending invocations (count)",
+        "note": "MAS_{3} at mu = 150 1/s is the system bottleneck. Baseline TAS uses {AS_{3}, MAS_{4}, DS_{1}} per cstudies.md chapter 7."
+    },
+    "MAS": {
+        "MAS_{1}": {"eps": 0.12, "W_ms": 11.0, "L": 1, "mu": 182},
+        "MAS_{2}": {"eps": 0.07, "W_ms": 9.4,  "L": 4, "mu": 532},
+        "MAS_{3}": {"eps": 0.18, "W_ms": 20.0, "L": 2, "mu": 150},
+        "MAS_{4}": {"eps": 0.10, "W_ms": 8.0,  "L": 6, "mu": 875},
+        "MAS_{5}": {"eps": 0.15, "W_ms": 9.0,  "L": 3, "mu": 444}
+    },
+    "AS": {
+        "AS_{1}": {"eps": 0.11, "W_ms": 5.7,  "L": 3, "mu": 702},
+        "AS_{2}": {"eps": 0.04, "W_ms": 7.3,  "L": 2, "mu": 411},
+        "AS_{3}": {"eps": 0.18, "W_ms": 3.8,  "L": 5, "mu": 1579},
+        "AS_{4}": {"eps": 0.08, "W_ms": 9.5,  "L": 1, "mu": 211},
+        "AS_{5}": {"eps": 0.14, "W_ms": 18.6, "L": 4, "mu": 269}
+    },
+    "DS": {
+        "DS_{1}": {"eps": 0.01, "W_ms": 8.0,  "L": 1, "mu": 250},
+        "DS_{2}": {"eps": 0.03, "W_ms": 7.7,  "L": 3, "mu": 519},
+        "DS_{3}": {"eps": 0.05, "W_ms": 11.0, "L": 5, "mu": 545},
+        "DS_{4}": {"eps": 0.07, "W_ms": 10.0, "L": 2, "mu": 300},
+        "DS_{5}": {"eps": 0.02, "W_ms": 15.0, "L": 4, "mu": 333}
+    }
+}
