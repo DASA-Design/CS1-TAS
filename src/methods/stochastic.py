@@ -206,7 +206,7 @@ def main() -> None:
         print(f"  {_k}: {_status}  ({_v['metric']}={_val_str} vs threshold={_thr_str})")
         _contribs = _v.get("contributions", [])
         if _contribs:
-            print("\ttop contributors:")
+            print(f"    top contributors:")
             for _c in _contribs[:3]:
                 if _k == "R1":
                     print(f"      {_c['node']:>10s}  eps={_c['epsilon']:.2f}  V={_c['V']:.4f}  contrib={_c['contribution']*100:.3f}%")

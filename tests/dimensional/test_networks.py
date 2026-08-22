@@ -5,7 +5,7 @@ Module test_networks.py
 
 Shape + invariant checks for the configuration-sweep helpers in `src.dimensional.networks`. The two sweep shapes (independent per-artifact vs Jackson-propagated) carry different semantics; each test class pins one contract of one helper.
 
-    - **TestSetpoint** `read_setpoint()` resolves the PACS-form variable key and raises on misses.
+    - **TestSetpoint** `read_setpoint()` resolves the subscripted variable key and raises on misses.
     - **TestSweepArtifact** per-artifact independent sweep returns aligned arrays with finite numeric values.
     - **TestSweepArtifacts** walks every artifact, honours `artifact_filter`, and returns a dict keyed by artifact.
     - **TestFindMaxStableLambdaFactor** the binary-search floor respects the utilisation cap.
@@ -62,7 +62,7 @@ def _tas1_vars(_cfg: NetCfg) -> Dict[str, Dict[str, Any]]:
 
 
 class TestSetpoint:
-    """**TestSetpoint** `read_setpoint()` resolves the PACS-form variable key and raises on misses."""
+    """**TestSetpoint** `read_setpoint()` resolves the subscripted variable key and raises on misses."""
 
     def test_reads_setpoint_value(self, _tas1_vars: Dict[str, Dict[str, Any]]) -> None:
         """*test_reads_setpoint_value()* the lambda setpoint for TAS_{1} baseline is positive (entry external arrival rate)."""

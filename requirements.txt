@@ -1,10 +1,9 @@
 # CS-1 TAS: runtime + notebook + test dependencies.
-# Pins match a verified working environment (Python 3.12+).
+# Rebuilt from an import scan of the shipped tree (Python 3.12+).
 
 # ---- PyDASA (the DASA dimensional-analysis library) ----
 # Not on public PyPI. Install from source first, e.g.:
 #   pip install "git+https://github.com/DASA-Design/PyDASA.git@v0.7.1"
-# then install this file. See README "Setup".
 pydasa==0.7.1
 
 # ---- numerical + modelling core ----

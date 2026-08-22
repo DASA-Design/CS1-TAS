@@ -6,7 +6,6 @@ Module split:
 - `common.py`: shared design-contract primitives + family-private helpers.
 - `charter.py`: yoly coefficient charts (theta, sigma, eta, phi).
 - `diagrams.py`: queueing topology + per-node heatmaps + architecture bars.
-- `characterization.py`: calibration envelope diagnostics.
 """
 
 # shared design-contract primitives + project-wide constants
@@ -21,17 +20,6 @@ from src.view.common import (
     render_footer_legend,
     render_footer_summary,
     render_footer_table,
-)
-# calibration family
-from src.view.characterization import (
-    plot_calibration_summary,
-    plot_envelope_overlay,
-    plot_handler_scaling,
-    plot_jitter,
-    plot_loopback,
-    plot_rate_sweep,
-    plot_timer,
-    plot_workers_scaling,
 )
 # yoly family
 from src.view.charter import (
@@ -74,12 +62,7 @@ __all__ = [
     # public plotters (family-prefixed)
     "plot_arch_bars",
     "plot_arch_delta",
-    "plot_calibration_summary",
     "plot_dim_topology",
-    "plot_envelope_overlay",
-    "plot_handler_scaling",
-    "plot_jitter",
-    "plot_loopback",
     "plot_method_metric_bars",
     "plot_node_ci",
     "plot_node_diffmap",
@@ -88,9 +71,6 @@ __all__ = [
     "plot_qn_topology",
     "plot_selection_surface",
     "plot_verdict_grid",
-    "plot_rate_sweep",
-    "plot_timer",
-    "plot_workers_scaling",
     "plot_yoly_arts_behaviour",
     "plot_yoly_arts_charts",
     "plot_yoly_arts_hist",

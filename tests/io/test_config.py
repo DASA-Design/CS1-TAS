@@ -7,7 +7,7 @@ Sanity checks for the profile + scenario loader in `src.io.config`.
 
     - **TestResolution**: the four adaptation aliases (`baseline`, `s1`, `s2`, `aggregate`) resolve to the correct (profile, scenario) pair and surface the expected artifacts at the three swap slots (5, 8, 10).
     - **TestSetpointFallback**: the `_setpoint` fallback kicks in when the caller omits `adaptation` and `scenario`.
-    - **TestArtifactSpec**: the `ArtifactSpec` properties (`mu`, `lambda_z`) read the PACS Variable dict correctly, including the dflt / opti service swap at slot 5.
+    - **TestArtifactSpec**: the `ArtifactSpec` properties (`mu`, `lambda_z`) read the Variable dict correctly, including the dflt / opti service swap at slot 5.
     - **TestErrors**: unknown adaptations and unknown scenarios fail loud at load time.
     - **TestSourceSwitch**: `source="artifacts"` (default) vs `source="specs"` flips between the model layer and the deployment layer.
     - **TestEnforceLimits**: the `enforce_limits` umbrella key flows through `NetCfg.enforce_limits`.

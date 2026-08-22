@@ -88,7 +88,7 @@ def _write_results(cfg: NetCfg,
                    nds: pd.DataFrame,
                    net: pd.DataFrame,
                    req: dict) -> Dict[str, str]:
-    """*_write_results()* serialises the solver outputs to disk in the PACS-style result envelope.
+    """*_write_results()* serialises the solver outputs to disk in the standard result envelope.
 
     Args:
         cfg (NetCfg): resolved network configuration.

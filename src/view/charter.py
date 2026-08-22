@@ -113,7 +113,7 @@ def _resolve_yoly_inputs(labels: Optional[Dict[str, str]],
 
     Args:
         labels (Optional[Dict[str, str]]): caller-supplied coefficient-label override.
-        paths (Optional[Dict[str, str]]): PACS-idiom grouping.
+        paths (Optional[Dict[str, str]]): multi-path grouping.
         scenarios (Optional[Dict[str, str]]): TAS-idiom grouping.
 
     Raises:
@@ -331,13 +331,13 @@ def plot_yoly_chart(coeff_data: Dict[str, Any],
     Panels (row-major): (theta, sigma), (theta, eta), (sigma, eta), (theta, phi). Three rendering modes selected by the caller's grouping kwarg:
 
         - **Single-queue** (default, both groupings None): looks up theta / sigma / eta / phi / c / mu / K arrays in `coeff_data` by semantic prefix. Each point is coloured by its `c` value and shaped by its `mu` value; K-endpoints get inline annotations.
-        - **Multi-path** (`paths=`, PACS idiom): one colour + marker per named path; per-path arrays keyed by `\\<coef>_{<path_tag>}`.
+        - **Multi-path** (`paths=`, multi-path idiom): one colour + marker per named path; per-path arrays keyed by `\\<coef>_{<path_tag>}`.
         - **Multi-scenario** (`scenarios=`, TAS idiom): same as multi-path under different naming. Mutually exclusive with `paths=`.
 
     Args:
         coeff_data (Dict[str, Any]): sweep dict keyed by LaTeX-subscripted symbols.
         labels (Optional[Dict[str, str]]): display labels per short coefficient name. Missing keys fall back to `_DEFAULT_LABELS`.
-        paths (Optional[Dict[str, str]]): PACS-idiom grouping `{display_name: path_tag}`.
+        paths (Optional[Dict[str, str]]): multi-path grouping `{display_name: path_tag}`.
         scenarios (Optional[Dict[str, str]]): TAS-idiom grouping; aliases `paths=`.
         logscale (Union[bool, List[bool]]): per-axis log toggle, applied to every panel.
         layout (Optional[FigureLayout]): full layout override. Defaults to a 2x2 2D body with a centred legend footer.
@@ -431,13 +431,13 @@ def plot_yoly_space(coeff_data: Dict[str, Any],
     Three rendering modes share the 3D axes:
 
         - **Single-queue** (both groupings None): colour by `c`, marker by `mu`, K-endpoints annotated.
-        - **Multi-path** (`paths=`, PACS idiom): one colour + marker per named path.
+        - **Multi-path** (`paths=`, multi-path idiom): one colour + marker per named path.
         - **Multi-scenario** (`scenarios=`, TAS idiom): one colour + marker per named adaptation. Mutually exclusive with `paths=`.
 
     Args:
         coeff_data (Dict[str, Any]): sweep dict keyed by LaTeX-subscripted symbols.
         labels (Optional[Dict[str, str]]): display labels per short coefficient name (`"theta"`, `"sigma"`, `"eta"`).
-        paths (Optional[Dict[str, str]]): PACS-idiom grouping.
+        paths (Optional[Dict[str, str]]): multi-path grouping.
         scenarios (Optional[Dict[str, str]]): TAS-idiom grouping; aliases `paths=`.
         logscale (Union[bool, List[bool]]): bool toggles log scale on all three axes; 3-list selects `[x_log, y_log, z_log]`.
         layout (Optional[FigureLayout]): full layout override. Defaults to a 1x1 3D body with a centred legend footer.
@@ -568,7 +568,7 @@ def _resolve_op_point_colors(adps: List[str],
     Args:
         adps (List[str]): op-point keys in caller-provided order (the trajectory direction).
         scenarios (Optional[Dict[str, str]]): TAS-idiom grouping `{display_name: tag}`.
-        paths (Optional[Dict[str, str]]): PACS-idiom grouping (alias of `scenarios`).
+        paths (Optional[Dict[str, str]]): multi-path grouping (alias of `scenarios`).
 
     Returns:
         Dict[str, Any]: `{adp: matplotlib_color}` aligned with the swept cloud's colours.
@@ -1148,7 +1148,7 @@ def plot_yoly_arts_behaviour(coeff_data: Dict[str, Dict[str, Any]],
         coeff_data (Dict[str, Dict[str, Any]]): nested `{node_key: {full_symbol: array}}`.
         labels (Optional[Dict[str, str]]): display labels per short coefficient name.
         names (Optional[Dict[str, str]]): node display-name override.
-        paths (Optional[Dict[str, str]]): PACS-idiom grouping.
+        paths (Optional[Dict[str, str]]): multi-path grouping.
         scenarios (Optional[Dict[str, str]]): TAS-idiom grouping; aliases `paths=`.
         logscale (Union[bool, List[bool]]): per-axis log toggle, applied to every cell.
         layout (Optional[FigureLayout]): full layout override.
@@ -1361,7 +1361,7 @@ def plot_yoly_arts_charts(coeff_data: Dict[str, Dict[str, Any]],
         coeff_data (Dict[str, Dict[str, Any]]): nested `{node_key: {full_symbol: array}}`.
         labels (Optional[Dict[str, str]]): display labels per short coefficient name.
         names (Optional[Dict[str, str]]): node display-name override.
-        paths (Optional[Dict[str, str]]): PACS-idiom grouping.
+        paths (Optional[Dict[str, str]]): multi-path grouping.
         scenarios (Optional[Dict[str, str]]): TAS-idiom grouping; aliases `paths=`.
         logscale (Union[bool, List[bool]]): per-axis log toggle, applied to every panel of every cell.
         layout (Optional[FigureLayout]): full layout override.

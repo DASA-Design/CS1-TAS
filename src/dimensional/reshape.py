@@ -9,7 +9,7 @@ Public API:
     - `coefs_to_nodes(result)` per-node DataFrame with one row per artifact and columns `key`, `theta`, `sigma`, `eta`, `phi` (only those coefficients that were derived).
     - `coefs_to_net(result, agg="mean")` single-row DataFrame of network-wide aggregates across artifacts.
     - `compute_coefs_delta(nds_dflt, nds_other, *, pct=True)` the fractional change frame used by `plot_nd_diffmap` / `plot_net_delta`.
-    - `aggregate_arch_coefs(result, tag="TAS")` PACS-iter2-style architecture-level aggregate (sum first, divide after).
+    - `aggregate_arch_coefs(result, tag="TAS")` sum-first architecture-level aggregate (sum first, divide after).
     - `aggregate_sweep_to_arch(sweep_data, tag="TAS")` collapse per-artifact sweep arrays into flat architecture-level arrays.
     - `compute_net_delta(net_dflt, net_other, *, pct=True)` network-wide delta frame.
 
@@ -75,7 +75,7 @@ def _per_combo_mean(sweep_data: Dict[str, Dict[str, np.ndarray]],
 
 
 def _extract_coef_column(full_sym: str) -> str:
-    """*_extract_coef_column()* extract the short coefficient name (e.g. `theta`) from a PACS-form symbol like `\\theta_{TAS_{1}}`.
+    """*_extract_coef_column()* extract the short coefficient name (e.g. `theta`) from a subscripted symbol like `\\theta_{TAS_{1}}`.
 
     Args:
         full_sym (str): coefficient symbol as stored in the orchestrator result.
@@ -191,7 +191,7 @@ def compute_coefs_delta(nds_dflt: pd.DataFrame,
 def aggregate_arch_coefs(result: Dict[str, Any],
                          *,
                          tag: str = "TAS") -> pd.DataFrame:
-    """*aggregate_arch_coefs()* compute one architecture-level coefficient set by summing raw per-node variables first and dividing after; the PACS-iter2 aggregation pattern.
+    """*aggregate_arch_coefs()* compute one architecture-level coefficient set by summing raw per-node variables first and dividing after; the sum-first aggregation pattern.
 
     This answers *"what is the TAS as a WHOLE doing?"* rather than *"what is the typical node doing?"*. The per-node `coefs_to_net` averages pre-computed per-node coefficients; this one sums raw L, K, lambda, ... across every artifact in the network and derives ONE theta / sigma / eta / phi / epsilon at the architecture level.
 
@@ -202,8 +202,8 @@ def aggregate_arch_coefs(result: Dict[str, Any],
         - epsilon_arch = 1 - prod(1 - epsilon_i)
 
     Args:
-        result (Dict[str, Any]): result dict returned by `src.methods.dimensional.run`. Must carry `config` (a `NetCfg`) so raw per-artifact variable setpoints can be read. Each artifact's `vars` block must carry the literal keys `L_{<key>}`, `K_{<key>}`, `W_{<key>}`, `\\lambda_{<key>}`, `\\chi_{<key>}`, `\\mu_{<key>}`, `c_{<key>}`, `M_{act_{<key>}}`, `M_{buf_{<key>}}`, `\\epsilon_{<key>}` (PACS variable schema).
-        tag (str): architecture subscript to use in the output column keys. Defaults to `"TAS"` so columns become `\\theta_{TAS}`, `\\sigma_{TAS}`, ..., matching the PACS iter2 `\\theta_{PACS}` convention one-for-one.
+        result (Dict[str, Any]): result dict returned by `src.methods.dimensional.run`. Must carry `config` (a `NetCfg`) so raw per-artifact variable setpoints can be read. Each artifact's `vars` block must carry the literal keys `L_{<key>}`, `K_{<key>}`, `W_{<key>}`, `\\lambda_{<key>}`, `\\chi_{<key>}`, `\\mu_{<key>}`, `c_{<key>}`, `M_{act_{<key>}}`, `M_{buf_{<key>}}`, `\\epsilon_{<key>}` (the Variable-dict schema).
+        tag (str): architecture subscript to use in the output column keys. Defaults to `"TAS"` so columns become `\\theta_{TAS}`, `\\sigma_{TAS}`, ..., i.e. the coefficient subscripted by the architecture tag; the `\\theta_{arch}` form.
 
     Returns:
         pd.DataFrame: single-row frame with `nodes` (count) plus `\\theta_{<tag>}`, `\\sigma_{<tag>}`, `\\eta_{<tag>}`, `\\phi_{<tag>}`, `\\epsilon_{<tag>}`.
@@ -270,7 +270,7 @@ def aggregate_arch_coefs(result: Dict[str, Any],
 def aggregate_sweep_to_arch(sweep_data: Dict[str, Dict[str, np.ndarray]],
                             *,
                             tag: str = "TAS") -> Dict[str, np.ndarray]:
-    """*aggregate_sweep_to_arch()* collapses per-artifact sweep arrays (from `sweep_arch`) into flat architecture-level arrays via PACS-iter2 aggregation applied point-by-point.
+    """*aggregate_sweep_to_arch()* collapses per-artifact sweep arrays (from `sweep_arch`) into flat architecture-level arrays via sum-first aggregation applied point-by-point.
 
     Expects the per-node arrays to be aligned across artifacts (same row = same whole-network sweep point), as produced by `sweep_arch`.
 

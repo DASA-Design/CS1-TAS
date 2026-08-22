@@ -32,7 +32,7 @@ def build_engine(artifact_key: str,
 
     Args:
         artifact_key (str): artifact identifier in LaTeX subscript form, e.g. `"TAS_{1}"`. Used in the engine name and description.
-        artifact_vars (dict[str, dict[str, Any]]): per-variable param dicts from the PACS envelope (`config["artifacts"][artifact_key]["vars"]`). Each value must match the `Variable(**params)` signature.
+        artifact_vars (dict[str, dict[str, Any]]): per-variable param dicts from the profile envelope (`config["artifacts"][artifact_key]["vars"]`). Each value must match the `Variable(**params)` signature.
         schema (Schema): framework schema built by `build_schema()`.
         fwk (str): framework name; must match the schema. Defaults to `"CUSTOM"`.
         idx (int): engine index (informational).

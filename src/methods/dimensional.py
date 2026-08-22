@@ -301,7 +301,7 @@ def _write_results(cfg: NetCfg,
                    nds: pd.DataFrame,
                    net: pd.DataFrame,
                    req: Dict[str, Any]) -> Dict[str, str]:
-    """*_write_results()* serialise the dimensional-analysis outputs to disk in the PACS-style result envelope.
+    """*_write_results()* serialise the dimensional-analysis outputs to disk in the standard result envelope.
 
     The envelope mirrors the analytic + stochastic methods (`network` + `nodes` + a separate `requirements.json`) so the cross-method comparison notebook can read all three from disk uniformly; the dimensional-method-specific payload lives under `artifacts` + `method_config`.
 

@@ -1142,15 +1142,15 @@ def _build_coef_map(node_block: Dict[str, Any]) -> Dict[str, str]:
 def _resolve_groups(paths: Optional[Dict[str, str]],
                     scenarios: Optional[Dict[str, str]]
                     ) -> Tuple[Optional[Dict[str, str]], str]:
-    """*_resolve_groups()* choose between `paths=` (PACS idiom) and `scenarios=` (TAS idiom) kwargs.
+    """*_resolve_groups()* choose between `paths=` (multi-path idiom) and `scenarios=` (TAS idiom) kwargs.
 
     Both kwargs drive identical plotter behaviour but live under different names so each case study reads in its own vocabulary:
 
-        - PACS: `paths={"Read": "R_{PACS}", "Write": "W_{PACS}"}`
+        - multi-path: `paths={"Read": "R_{arch}", "Write": "W_{arch}"}`
         - CS-01 TAS: `scenarios={"Before": "baseline_{TAS_{1}}", "After": "aggregate_{TAS_{1}}"}`
 
     Args:
-        paths (Optional[Dict[str, str]]): PACS-idiom grouping.
+        paths (Optional[Dict[str, str]]): multi-path grouping.
         scenarios (Optional[Dict[str, str]]): TAS-idiom grouping.
 
     Raises:

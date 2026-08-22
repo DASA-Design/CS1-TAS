@@ -8,7 +8,7 @@ Shape + semantic checks for the orchestrator-output reshapers:
     - **TestNodeShape**: `coefs_to_nodes` produces one row per artifact with the expected column set.
     - **TestNetworkShape**: `coefs_to_net` produces a single-row frame with the aggregate coefficients.
     - **TestDeltaSemantics**: `compute_coefs_delta` gives zero delta on identical inputs and handles mismatched node sets (e.g. 13-node baseline vs 16-node aggregate).
-    - **TestArchitectureAggregation**: `aggregate_arch_coefs` PACS-iter2 sum-first-divide-after rule produces single-row architecture-level coefficients (theta, sigma, eta, phi, epsilon).
+    - **TestArchitectureAggregation**: `aggregate_arch_coefs` sum-first-divide-after rule produces single-row architecture-level coefficients (theta, sigma, eta, phi, epsilon).
     - **TestAggregateSweepToArch**: `aggregate_sweep_to_arch` collapses per-artifact sweep arrays into flat architecture-level arrays; aligned across artifacts via `sweep_arch`.
 """
 # data types
@@ -123,7 +123,7 @@ class TestDeltaSemantics:
 
 
 class TestArchitectureAggregation:
-    """**TestArchitectureAggregation** PACS-iter2-style variable-level aggregation (sum raw vars first, divide after) produces one architecture-level coefficient per metric."""
+    """**TestArchitectureAggregation** sum-first variable-level aggregation (sum raw vars first, divide after) produces one architecture-level coefficient per metric."""
 
     def test_single_row_output(self, _dim_baseline: Dict[str, Any]) -> None:
         """*test_single_row_output()* `aggregate_arch_coefs` returns exactly one row."""
@@ -200,7 +200,7 @@ class TestArchitectureAggregation:
 
 
 class TestAggregateSweepToArch:
-    """**TestAggregateSweepToArch** `aggregate_sweep_to_arch` collapses per-artifact sweep arrays (from `sweep_arch`) into flat architecture-level arrays via PACS-iter2 aggregation point-by-point. Tests build a synthetic 2-artifact sweep so the contract can be checked without a real `sweep_arch` round-trip."""
+    """**TestAggregateSweepToArch** `aggregate_sweep_to_arch` collapses per-artifact sweep arrays (from `sweep_arch`) into flat architecture-level arrays via sum-first aggregation point-by-point. Tests build a synthetic 2-artifact sweep so the contract can be checked without a real `sweep_arch` round-trip."""
 
     def _synthetic_sweep(self) -> Dict[str, Dict[str, np.ndarray]]:
         """*_synthetic_sweep()* build a 2-artifact x 3-point nested sweep dict with hand-controllable values; uniform (mu, c, K) per row so the architecture aggregate has a known closed form."""

@@ -3,7 +3,7 @@
 Module config.py
 ================
 
-Profile + scenario loader for the CS-01 TAS case study. Resolves a `(profile, scenario)` selection into a flat `NetCfg` by reading the PACS-style JSONs under `data/config/profile/`.
+Profile + scenario loader for the CS-01 TAS case study. Resolves a `(profile, scenario)` selection into a flat `NetCfg` by reading the Variable-dict JSONs under `data/config/profile/`.
 
 Expected envelope shape::
 
@@ -59,7 +59,7 @@ class ArtifactSpec:
     """**ArtifactSpec** one node's full spec, resolved from the profile + scenario load.
 
     Attributes:
-        key (str): artifact key in the PACS envelope (e.g. `TAS_{1}`).
+        key (str): artifact key in the profile envelope (e.g. `TAS_{1}`).
         name (str): human-readable name.
         type_ (str): queue model string (e.g. `M/M/c/K`).
         lambda_z (float): external arrival rate entering this node.
@@ -226,7 +226,7 @@ def _resolve_source(adaptation: Optional[str],
 
 
 def _read_profile(profile_stem: str) -> Dict[str, Any]:
-    """*_read_profile()* load the raw PACS-style JSON for a profile.
+    """*_read_profile()* load the raw Variable-dict JSON for a profile.
 
     Args:
         profile_stem (str): profile file stem (e.g. `dflt`, `opti`).

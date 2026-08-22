@@ -71,7 +71,7 @@ The notebooks run in pipeline order and are named with a numbered prefix so they
 
 **Idea.** Solve TAS as an open queueing network in closed form, M/M/c/K per node, across the full adaptation axis, and check the result against the R1 and R2 targets. This is the primary prediction source: the analytic solve is the number every other method is compared against.
 
-**Inputs.** `data/config/profile/dflt.json` and `data/config/profile/opti.json` (the PACS-style Variable dicts) plus `data/reference/baseline.json` (the R1 and R2 thresholds).
+**Inputs.** `data/config/profile/dflt.json` and `data/config/profile/opti.json` (the Variable-dict profiles) plus `data/reference/baseline.json` (the R1 and R2 thresholds).
 
 **Outputs.** Per-run metrics at `data/results/analytic/<adaptation>/<profile>.json` (nodes, network, routing, and `lambda_z`), the R1 and R2 verdicts at `data/results/analytic/<adaptation>/requirements.json`, and topology, heatmap, bar, and delta figures under `data/img/analytic/<adaptation>/`.
 

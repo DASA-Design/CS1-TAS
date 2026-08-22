@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.2.0 (2026-08-17)
+
+- Align the published tree with the CS-1-only prune of the development repository.
+- Remove the calibration/benchmark plotters (`src/view/{bench,characterization}.py`)
+  and their tests, and the 36 MB `data/reference` replication dump (keep
+  `baseline.json`, the R1 and R2 thresholds).
+- Remove the remaining references to sibling case studies from the source docstrings,
+  the notebook narrative, the tests, and the documentation, so the published record is
+  Tele Assistance System only.
+
 ## v1.1.0 (2026-08-17)
 
 - Render the formulas across the documentation (`case-study.md`, `procedure.md`,
