@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.3.0 (2026-08-22)
+
+- Reorganise the three documents (`case-study.md`, `procedure.md`, `report.md`) into a
+  canonical section template shared across the DASA case-study repositories, so the
+  published records are cross-comparable and easier to read side by side. The content is
+  unchanged: sections were reordered, retitled, and merged. `case-study.md` now opens by
+  expanding the Tele Assistance System (TAS) acronym.
+
 ## v1.2.0 (2026-08-17)
 
 - Align the published tree with the CS-1-only prune of the development repository.

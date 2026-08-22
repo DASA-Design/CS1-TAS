@@ -1,4 +1,4 @@
-# CS-01 TAS: Experimental Procedure
+# TAS: Experimental Procedure
 
 This document explains how the CS-1 Tele Assistance System (TAS) experiment is run and the idea behind each of the six notebooks. It is the method companion to two sibling documents: [case-study.md](case-study.md) describes what TAS is (the system, its quality attributes, and its service catalogue), and [report.md](report.md) presents the results together with the full DASA modelling derivation. This procedure keeps the model at a high level and points to [report.md](report.md) wherever the derivation matters.
 
@@ -8,7 +8,7 @@ The locked envelope for every run is $\lambda_z = 323$ req/s (the E-QS canonical
 
 ---
 
-## 1. The experiment as architectural experimentation
+## 1. Question and hypotheses
 
 The organising discipline is architectural experimentation in the sense of Pureur and Bittner: a Quality Attribute Requirement (QAR) is not a target to assert and defend, it is a hypothesis about value that has to be tested. If you do not test it, you are betting on it. CS-1 treats its two requirements this way. Rather than asserting that a given adaptation satisfies both requirements, it states each requirement as a falsifiable predicate and runs apparatus that could reject it. The shift from the traditional stance (the architect assumes, decides, defends) to the experimental stance (the architect hypothesises, experiments, falsifies) is the posture of every notebook here.
 
@@ -28,16 +28,14 @@ CS-1 follows the four-piece experimental structure of Hypothesis, Model, Apparat
 
 | Piece | Lives in | CS-1 instance |
 |---|---|---|
-| **Hypothesis** | this document, section 2 | H1, H2, H3 |
+| **Hypothesis** | this document, section 1.3 | H1, H2, H3 |
 | **Model (prediction)** | [01-analytic.ipynb](../01-analytic.ipynb), [03-dimensional.ipynb](../03-dimensional.ipynb) | loss-network M/M/c/K solve with a FAIL sink, re-framed dimensionally |
 | **Apparatus (measurement)** | [02-stochastic.ipynb](../02-stochastic.ipynb), [04-yoly.ipynb](../04-yoly.ipynb) | a simulation of the same network, independent of the closed form; a design-space sweep |
 | **Validation (decision)** | [06-comparison.ipynb](../06-comparison.ipynb), [05-search.ipynb](../05-search.ipynb) | cross-method verdict matrix and numerical agreement; bound-versus-verdict check |
 
 The key separation the structure demands (apparatus that produces measurements, kept distinct from a thin step that decides) is honoured. Each method writes raw `network`, `nodes`, and `requirements.json` envelopes to disk; the comparison notebook reads them back read-only, and no method recomputes another method's prediction inside the decision step.
 
----
-
-## 2. Hypotheses and tolerances
+### 1.3 Hypotheses and tolerances
 
 Three hypotheses are decided. Tolerances were fixed before the runs and are motivated by measurement noise and the model's approximation budget, not chosen afterward to fit the results.
 
@@ -55,7 +53,7 @@ An experiment whose tolerance is loose enough to absorb any disagreement is not 
 
 ---
 
-## 3. The model in brief
+## 2. The DASA method
 
 Failures are modelled as routing leaks absorbed at an explicit absorbing node, `FAIL_{1}` (node index 13, giving 14 nodes per scenario). Availability is read directly from flow rather than from a lost-call exposure product. The failed fraction is $\varepsilon_{e2e} = \lambda_{\mathrm{FAIL}} / \lambda_z$, which drives **R1**. The effective successful-completion rate is $\chi_{\mathrm{out}} = \lambda_z - \lambda_{\mathrm{FAIL}}$, and the end-to-end response time is $W_{e2e} = L_{\mathrm{net}} / \chi_{\mathrm{out}}$ (where $L_{\mathrm{net}}$ excludes the FAIL node), which drives **R2**. Failure is applied at the three workflow handlers with a dispatch-weighted pool failure, and retry (present in S1 and the aggregate) is a handler split-loop that shrinks the residual give-up flow multiplicatively. The provenance for the response-time relation is the General Response Time Law (Denning and Buzen, 1978).
 
@@ -63,11 +61,11 @@ The two requirements under test are **R1 (Availability)**, failure rate $\leq 1.
 
 ---
 
-## 4. The six notebooks
+## 3. The notebooks
 
 The notebooks run in pipeline order and are named with a numbered prefix so they sort that way. Notebooks 01 through 03 are the three predictive methods; each writes its own result envelopes to disk. Notebook 04 sweeps the design space. Notebook 05 runs the constructive search, consuming the dimensional operating points. Notebook 06 reads the persisted outputs of 01 through 03 (and the search winner from 05) and decides the cross-method verdict. Every notebook is thin: the logic lives in `src/`, and the cells orchestrate, display, and save figures.
 
-### 4.1 01-analytic.ipynb (Model)
+### 3.1 01-analytic.ipynb (Model)
 
 **Idea.** Solve TAS as an open queueing network in closed form, M/M/c/K per node, across the full adaptation axis, and check the result against the R1 and R2 targets. This is the primary prediction source: the analytic solve is the number every other method is compared against.
 
@@ -77,7 +75,7 @@ The notebooks run in pipeline order and are named with a numbered prefix so they
 
 **Role.** The Model piece. It produces the canonical closed-form prediction for all four adaptations.
 
-### 4.2 02-stochastic.ipynb (Apparatus)
+### 3.2 02-stochastic.ipynb (Apparatus)
 
 **Idea.** Solve the same queueing network by discrete-event simulation and cross-check against the analytic closed form. The simulation mirrors the model's queue, service, routing, and failure assumptions but solves by simulating arrivals rather than by the closed-form formula, so its measurements are an independent check rather than a restatement of the analytic result.
 
@@ -87,7 +85,7 @@ The notebooks run in pipeline order and are named with a numbered prefix so they
 
 **Role.** The Apparatus piece. Because it is an independent solver, it is the notebook that could have rejected H1 and H2 and did not. Every node's analytic point lands inside the simulation's confidence-interval band, which is the empirical justification for the aggregate agreement.
 
-### 4.3 03-dimensional.ipynb (Model, re-framed)
+### 3.3 03-dimensional.ipynb (Model, re-framed)
 
 **Idea.** Characterise TAS dimensionally for every adaptation. For each artifact, PyDASA derives Pi-groups from the relevant variables on the Time / Structure / Data basis, and four operationally meaningful coefficients are built from them: $\theta = L/K$ (Occupancy), $\sigma = W \cdot \lambda / K$ (Stall), $\eta = \chi \cdot K / (\mu \cdot c)$ (Effective-yield), and $\phi = M_{\mathrm{act}} / M_{\mathrm{buf}}$ (Memory-usage). The dimensional method does not produce a different verdict; it re-frames the same threshold check as a viable-region predicate in scale-free dimensionless space, which is what makes designs comparable across architectures.
 
@@ -99,7 +97,7 @@ The persisted dimensional solution carries a seeded 5% white-noise robustness pa
 
 **Role.** The Model piece, re-framed dimensionally. It is the promotion of the Bass quality scenarios to Enhanced Quality Scenarios, and it supplies the dimensionless operating points the search navigates by.
 
-### 4.4 04-yoly.ipynb (Apparatus, design space)
+### 3.4 04-yoly.ipynb (Apparatus, design space)
 
 **Idea.** Produce a design-space coefficient cloud for the whole TAS architecture. For each `(mu_factor, c, K)` combination in the sweep grid, the external arrival rate is increased up to the first-node saturation point, then samples are drawn from the stable interval; at each sample the routing matrix is applied by Jackson propagation, so every node's arrival rate is consistent with the network topology rather than set in isolation. The saturation rule (first component saturates means the whole network is unstable) is enforced at every sample, so the cloud contains only feasible designs.
 
@@ -111,7 +109,7 @@ Each swept point carries the same seeded 5% white-noise disturbance on the indep
 
 **Role.** The Apparatus piece extended to the design space. It shows where the hand-authored adaptations sit inside the feasible cloud and how input noise propagates through the coefficients.
 
-### 4.5 05-search.ipynb (Validation, constructive)
+### 3.5 05-search.ipynb (Validation, constructive)
 
 **Idea.** The four published adaptations were authored by hand. This notebook asks a constructive question: navigating the design space by DASA's dimensionless coefficients alone, can we find a configuration that clears both requirements at the locked envelope and improves on the published aggregate? Two levers are searched jointly, dispatch weights (a continuous simplex over how traffic splits across a pool of service variants) and retry depth (a discrete choice per workflow handler between retrying and giving up on the first attempt).
 
@@ -123,7 +121,7 @@ Each swept point carries the same seeded 5% white-noise disturbance on the indep
 
 **Role.** The Validation piece in its constructive form, and the test of H3. Across the full candidate cloud the DASA bound predicate matches the analytic R1 AND R2 verdict on every candidate over a region containing both passes and fails. There is no equivalent CLI; this is a research notebook.
 
-### 4.6 06-comparison.ipynb (Validation, decision)
+### 3.6 06-comparison.ipynb (Validation, decision)
 
 **Idea.** Cross-method R1 and R2 triangulation, then place the search winner alongside the four hand-authored adaptations. This notebook reads the persisted analytic, stochastic, and dimensional envelopes from disk (plus the search winner) and renders the convergence and numerical-agreement bands that close the model-only chapter. It computes nothing new about the model; it decides H1 and H2 from what the methods already wrote.
 
@@ -135,7 +133,7 @@ Each swept point carries the same seeded 5% white-noise disturbance on the indep
 
 ---
 
-## 5. Reproducing the experiment
+## 4. Reproducing the runs
 
 Two routes reproduce the runs. Both assume the project virtual environment is active and the PyDASA wheel pinned in `requirements.txt` is installed.
 
@@ -167,3 +165,24 @@ jupyter nbconvert --to notebook --execute --inplace 0*.ipynb
 ```
 
 Executing 01 through 03 refreshes the method envelopes under `data/results/`, 04 refreshes the design-space clouds, 05 refreshes the search winner, and 06 reads all of them back and renders the cross-method decision. Files under `data/results/` are regenerated by the methods and are never hand-edited.
+
+---
+
+## 5. Threats to the procedure
+
+These are caveats of the experimental procedure itself; the full model-and-method threats to validity are in [report.md](report.md) Section 7.
+
+1. **Shared-assumption ceiling.** The three predictive pipelines share the same M/M/c/K loss-network model, so their agreement is internal consistency (mutual confirmation under shared assumptions), not falsification against a live deployed system. The stochastic DES is an independent solver and could have rejected H1 and H2, which is what makes the congruence meaningful, but it does not measure reality.
+2. **Model-based apparatus.** The apparatus is a simulation of the model, not an instrumented deployment. The procedure therefore establishes internal rigour and a constructive demonstration, not external falsification. Measuring a running TAS is a separate activity CS-1 does not perform.
+3. **Atomic decomposition versus the source strategy.** Modelling S2 as the selection lever in isolation (no failover) is a deliberate atomic-experiment choice that departs from the source's bundled Select-Reliable strategy; the aggregate recombines retry and selection to correspond to the source strategy. The gain in lever attribution is bought at the cost of a literal per-cell match to the source.
+4. **Pre-registered tolerances.** The H2 tolerances were fixed before the runs and are motivated by the M/M/c/K approximation budget and simulation noise. The procedure depends on this discipline: a tolerance loosened afterward to absorb any disagreement would strip the experiment of its falsifying force.
+
+---
+
+## References
+
+The methodological sources named in this procedure are used at a high level; their full bibliographic entries live in the sibling documents.
+
+- Pureur and Bittner, on architectural experimentation: the stance that a Quality Attribute Requirement is a falsifiable hypothesis, the three properties of an effective experiment (atomic, timely, unambiguous), and the four-piece Hypothesis / Model / Apparatus / Validation structure.
+- Denning and Buzen (1978), the General Response Time Law, provenance for the end-to-end response-time relation used in Section 2; see [report.md](report.md).
+- Weyns and Calinescu (2015) and Camara et al. (2023), the sources of the R1 (Availability) and R2 (Performance) thresholds; full entries in [case-study.md](case-study.md) and [report.md](report.md).

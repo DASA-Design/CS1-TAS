@@ -1,4 +1,4 @@
-# CS-1 TAS: DASA Evaluation Report
+# TAS: DASA Evaluation Report
 
 This is the DASA (Dimensional Analysis for Software Architecture) evaluation of the Tele Assistance System (TAS). It records how TAS was modelled dimensionally, what the runs found across four self-adaptation strategies plus a constructive search, and what the results mean for the two quality-attribute requirements under test (Availability and Performance). The modelling derivation and the cross-validated results live together here, mirroring the dissertation's evaluation chapter. For the architecture itself (what TAS is, its workflow, its service catalogue) see [case-study.md](case-study.md); for the experimental method and the six-notebook pipeline that produced these numbers see [procedure.md](procedure.md).
 
@@ -22,13 +22,13 @@ The result is a clean performance-versus-availability trade-off. Retry buys avai
 
 Among the four hand-authored adaptations, only the aggregate passes both requirements. The DASA-guided search winner improves on the aggregate on availability (0.029 % versus 0.07 %, about 2.5 times more available) for a negligible performance cost (19.85 ms versus 19.40 ms, both well inside the 26 ms ceiling).
 
-**Methodological boundary.** All four methods are model-based. The three pipelines confirm each other (internal consistency) and the search is a constructive result plus a falsifiable predictive check. CS-1 does not measure a live deployed system, so it establishes internal rigour and a constructive demonstration, not external falsification against reality (Section 8).
+**Methodological boundary.** All four methods are model-based. The three pipelines confirm each other (internal consistency) and the search is a constructive result plus a falsifiable predictive check. CS-1 does not measure a live deployed system, so it establishes internal rigour and a constructive demonstration, not external falsification against reality (Section 7).
 
 ---
 
 ## 2. DASA modelling
 
-The modelling step produces the formal apparatus (queue model, SAFDUs, dimensional matrix, Pi-groups, dimensionless coefficients, R1/R2 bounds, viable-region predicate) that the results in Section 4 onward consume. The per-scenario verdicts are not modelling outputs; they are the cross-validation results.
+The modelling step produces the formal apparatus (queue model, SAFDUs, dimensional matrix, Pi-groups, dimensionless coefficients, R1/R2 bounds, viable-region predicate) that the results in Section 3 onward consume. The per-scenario verdicts are not modelling outputs; they are the cross-validation results.
 
 ### 2.1 Formal model and adaptation encoding
 
@@ -48,7 +48,7 @@ The model commits to steady-state M/M/c/K at every node, embedded in an open Jac
 | `AS_{3}` | 0.203 | 1579 | 0.13e-3 |
 | Drug service | 0.495 | 545 | 0.91e-3 |
 
-**Bottleneck.** `MAS_{3}` at $\mu = 150$ 1/s is the slowest server and the binding node at baseline, with visit ratio $V_b = 0.302$ and per-request demand $D_b$ = 2.01e-3 s/req. The internal TAS workflow stages run at $\mu = 750$ 1/s, set to 1.5 times the binding sensitivity floor of 497 1/s (the value at which the highest-visit TAS stage would displace `MAS_{3}`). The bottleneck identification is provably invariant to that internal-rate choice for any rate above 497 1/s, which is why the placeholder does not affect the verdict. The internal-rate assumption is recorded as a construct-validity threat in Section 8.
+**Bottleneck.** `MAS_{3}` at $\mu = 150$ 1/s is the slowest server and the binding node at baseline, with visit ratio $V_b = 0.302$ and per-request demand $D_b$ = 2.01e-3 s/req. The internal TAS workflow stages run at $\mu = 750$ 1/s, set to 1.5 times the binding sensitivity floor of 497 1/s (the value at which the highest-visit TAS stage would displace `MAS_{3}`). The bottleneck identification is provably invariant to that internal-rate choice for any rate above 497 1/s, which is why the placeholder does not affect the verdict. The internal-rate assumption is recorded as a construct-validity threat in Section 7.
 
 **Arrival-rate envelope.** The open-Jackson stability condition $\rho_b = V_b \cdot \lambda_z / (c_b \cdot \mu_b) < 1$ binds first at `MAS_{3}`. The analytical saturation throughput, at which $\rho_b \to 1$ and the network leaves the stable regime, is
 
@@ -154,11 +154,9 @@ An operating point satisfies the E-QS only if all six clauses hold simultaneousl
 
 The predicate is a conjunction: failing any one clause rejects the operating point.
 
-**Reference-frame note.** The architecture-level bounds are derived from baseline worst-case parameters and held fixed across adaptations for cross-comparison legitimacy. Under S2 and the aggregate the catalogue swap replaces `MAS_{3}`, so the true $\mu_{\min}$ rises (to the drug service at $\mu = 250$); recomputing $\eta_{R1}$ in each adaptation's own design space would tighten the bound. The fixed-frame reading answers "does the adapted TAS still satisfy R1 at the baseline operating point?"; the per-adaptation frame is a refinement option (Section 8).
+**Reference-frame note.** The architecture-level bounds are derived from baseline worst-case parameters and held fixed across adaptations for cross-comparison legitimacy. Under S2 and the aggregate the catalogue swap replaces `MAS_{3}`, so the true $\mu_{\min}$ rises (to the drug service at $\mu = 250$); recomputing $\eta_{R1}$ in each adaptation's own design space would tighten the bound. The fixed-frame reading answers "does the adapted TAS still satisfy R1 at the baseline operating point?"; the per-adaptation frame is a refinement option (Section 7).
 
----
-
-## 3. The requirements under test
+### 2.7 The requirements under test
 
 Two quality-attribute requirements are decided, treated as falsifiable hypotheses rather than assertions:
 
@@ -171,9 +169,9 @@ The case-study sources carry three different R1 framings (Weyns 1.0 %, Weyns and
 
 ---
 
-## 4. Results
+## 3. Results
 
-### 4.1 Per-method verdicts and the trade-off
+### 3.1 Per-method verdicts and the trade-off
 
 Network-level metrics from the analytic solve (`data/results/analytic/<adp>/{dflt,opti}.json`):
 
@@ -190,9 +188,9 @@ Reading the trade-off (which recasts the cost-versus-reliability tension of Weyn
 - **Selection lowers latency but cannot clear 1 % alone.** Swapping in the lower-$\varepsilon$ `MAS_{4}` and `AS_{4}` variants drops $W_{e2e}$ to 18.53 ms, but a single attempt leaves S2 at 10.42 % failure.
 - **The aggregate combines both.** Reliable dispatch keeps the load down (19.40 ms) while retry recovers availability (0.07 %), so it is the only hand-authored adaptation to pass both.
 
-### 4.2 Five-solution comparison (the search winner as a fifth design)
+### 3.2 Five-solution comparison (the search winner as a fifth design)
 
-[06-comparison.ipynb](../06-comparison.ipynb) places the search winner (Section 6) alongside the four hand-authored adaptations and reports each solution's distance from the aggregate, the best published design. Deltas are $\text{solution} - \text{aggregate}$; a negative $dW$ means faster, a negative $d\varepsilon$ means more available.
+[06-comparison.ipynb](../06-comparison.ipynb) places the search winner (Section 5) alongside the four hand-authored adaptations and reports each solution's distance from the aggregate, the best published design. Deltas are $\text{solution} - \text{aggregate}$; a negative $dW$ means faster, a negative $d\varepsilon$ means more available.
 
 | Solution | $W_{e2e}$ [ms] | $\varepsilon_{e2e}$ [%] | R1 | R2 | $dW$ vs S1&S2 [ms] | $d\varepsilon$ vs S1&S2 [pp] |
 |---|---|---|---|---|---|---|
@@ -204,7 +202,7 @@ Reading the trade-off (which recasts the cost-versus-reliability tension of Weyn
 
 Of the five, only the aggregate and the search winner clear both bounds. The winner trades 0.449 ms of response time (well inside the 26 ms ceiling) for a 0.0424 pp availability increase, landing at 0.029 % failure versus the aggregate's 0.071 %, about 2.5 times more available.
 
-### 4.3 Dimensional viable region
+### 3.3 Dimensional viable region
 
 The same four adaptations placed against the E-QS bounds ($\sigma_{R2} \approx 0.525$, $\eta_{R1} \approx 34.80$):
 
@@ -215,9 +213,9 @@ The same four adaptations placed against the E-QS bounds ($\sigma_{R2} \approx 0
 | S2 | 0.37 | 38.0 | yes | no |
 | aggregate | 0.39 | 34.5 | yes | yes |
 
-Only the aggregate sits inside both boxes, matching the operational verdict of Section 4.1 cell for cell.
+Only the aggregate sits inside both boxes, matching the operational verdict of Section 3.1 cell for cell.
 
-### 4.4 Per-node bottleneck attribution
+### 3.4 Per-node bottleneck attribution
 
 The verdict records carry per-node top-5 driver contributions as evidence. The top driver is congruent across methods:
 
@@ -226,11 +224,11 @@ The verdict records carry per-node top-5 driver contributions as evidence. The t
 
 ---
 
-## 5. Cross-method triangulation
+## 4. Cross-validation
 
 [06-comparison.ipynb](../06-comparison.ipynb) reads the persisted envelopes and renders the verdict matrix and numerical agreement.
 
-### 5.1 Scenario-by-method matrix
+### 4.1 Scenario-by-method matrix
 
 Every scenario solved by each predictive method, read from `data/results/<method>/<adp>/requirements.json`. The search winner is scored by the analytic and dimensional pipelines only; it is not re-simulated in the DES (marked `n/r`, named as future work).
 
@@ -258,7 +256,7 @@ The verdict bits are congruent across all three methods for every one of the fou
 
 **Figure 2.** Cross-method verdict grid: PASS/FAIL across five solutions and three methods.
 
-### 5.2 Analytic-versus-stochastic residuals
+### 4.2 Analytic-versus-stochastic residuals
 
 Since analytic and dimensional coincide exactly, the only testable numerical gap is analytic versus stochastic (`stochastic - analytic`, positive means the DES over-predicts):
 
@@ -277,7 +275,7 @@ All residuals fall inside the pre-stated tolerance ($\lvert \Delta W_{e2e} \rver
 
 ---
 
-## 6. The constructive search
+## 5. The constructive search
 
 [05-search.ipynb](../05-search.ipynb) tests a design hypothesis: navigating by DASA's dimensionless coefficients alone, can we find a configuration that clears both requirements and beats the published aggregate? Two levers are searched jointly: dispatch weights (continuous simplex) and retry depth (discrete grid over the three handlers).
 
@@ -309,7 +307,7 @@ All residuals fall inside the pre-stated tolerance ($\lvert \Delta W_{e2e} \rver
 
 ---
 
-## 7. Data-consistency verification
+## 6. Data-consistency verification
 
 Headline numbers traced to their authoritative source. Status legend: `match` (exact within rounding), `features coincide` (qualitative claim confirmed).
 
@@ -325,8 +323,8 @@ Headline numbers traced to their authoritative source. Status legend: `match` (e
 | 8 | only the aggregate passes both | all requirements.json | features coincide (3 methods) |
 | 9 | 24/24 cells congruent | analytic/stochastic/dimensional | match (identical bits) |
 | 10 | analytic == dimensional exactly | both requirements.json | match (bit-identical) |
-| 11 | $\lvert \Delta W_{e2e} \rvert \leq 1.06$ % (stoch vs an) | computed, Section 5.2 | match (1.06 % max, S1) |
-| 12 | $\lvert \Delta \varepsilon_{e2e} \rvert \leq 0.074$ pp | computed, Section 5.2 | match (0.074 pp max, baseline) |
+| 11 | $\lvert \Delta W_{e2e} \rvert \leq 1.06$ % (stoch vs an) | computed, Section 4.2 | match (1.06 % max, S1) |
+| 12 | $\lvert \Delta \varepsilon_{e2e} \rvert \leq 0.074$ pp | computed, Section 4.2 | match (0.074 pp max, baseline) |
 | 13 | winner $\varepsilon_{e2e}$ ~ 0.029 % | search/winner/winner.json | match (0.0002904) |
 | 14 | winner $W_{e2e}$ ~ 19.85 ms | search/winner/winner.json | match (0.019850 s) |
 | 15 | scipy agrees within 0.004 ms | search/winner/winner.json | match (0.00377 ms) |
@@ -344,7 +342,7 @@ Headline numbers traced to their authoritative source. Status legend: `match` (e
 
 ---
 
-## 8. Threats to validity
+## 7. Threats to validity
 
 ### Model and method
 
@@ -373,7 +371,7 @@ Headline numbers traced to their authoritative source. Status legend: `match` (e
 
 ---
 
-## 9. Research-question coverage
+## 8. Discussion
 
 How far CS-1 (model-only, one of two case studies) answers the dissertation's research questions, objectives, and contributions. Verdicts are honest; several items are partial by design.
 
@@ -405,10 +403,26 @@ The partial items share two roots: model-only scope (which holds back the runnin
 
 ---
 
-## 10. Conclusion
+### Conclusion
 
 CS-1 treats the TAS quality-attribute requirements as falsifiable hypotheses about value and decides them with atomic, timely, unambiguous experiments. Three independent predictive pipelines agree on the verdict for all 24 (method, adaptation, requirement) cells and on the numbers within Monte-Carlo noise ($\lvert \Delta W_{e2e} \rvert \leq 1.06$ %). The trade-off is clean: retry buys availability at a performance cost, selection buys performance but not enough availability, and only the aggregate satisfies both, which is the performance-versus-availability recast of the cost-versus-reliability tension Weyns and Calinescu frame. Constructively, a DASA-coefficient-guided search lands a configuration that clears both requirements and beats the best hand-authored design (0.029 % failure versus 0.07 %), confirmed independently by a scipy optimiser, with the dimensionless bounds predicting the analytic verdict on every candidate in a mixed region.
 
 The honest boundary is that this is confirmation plus a constructive result in model space. The SimPy DES is an independent solver that could have rejected the equivalence claim and did not, which makes the agreement meaningful, but it shares the model's assumptions, so CS-1 establishes internal consistency and a constructive demonstration, not a falsification against a real deployed system. The three case-study-to-model mappings (the pooled baseline, the selection-only S2, the retired R3) are the points where the running model deliberately departs from the source reconstruction, and each is stated explicitly.
 
 For the architecture that underlies these numbers, see [case-study.md](case-study.md); for the experimental method and the notebook pipeline, see [procedure.md](procedure.md).
+
+---
+
+## References
+
+The TAS case-study source set is listed in full in [case-study.md](case-study.md); the entries this report relies on are repeated here for convenience.
+
+[1] D. Weyns and R. Calinescu, "Tele Assistance: A Self-Adaptive Service-Based System Exemplar," in *Proceedings of the 10th International Symposium on Software Engineering for Adaptive and Self-Managing Systems (SEAMS 2015)*, Florence, Italy, May 2015, pp. 88-92. doi: 10.1109/SEAMS.2015.27.
+
+[6] L. Bass, P. Clements, and R. Kazman, *Software Architecture in Practice*, 3rd ed. Addison-Wesley Professional, 2012.
+
+[10] J. Cámara, R. Wohlrab, D. Garlan, and B. Schmerl, "ExTrA: Explaining architectural design tradeoff spaces via dimensionality reduction," *Journal of Systems and Software*, vol. 198, p. 111578, Apr. 2023. doi: 10.1016/j.jss.2022.111578.
+
+[13] D. Weyns and M. U. Iftikhar, "Model-based Simulation at Runtime for Self-adaptive Systems," in *2016 IEEE International Conference on Autonomic Computing (ICAC)*, Würzburg, Germany, Jul. 2016, pp. 364-373. doi: 10.1109/ICAC.2016.67.
+
+[DB78] P. J. Denning and J. P. Buzen, "The Operational Analysis of Queueing Network Models," *ACM Computing Surveys*, vol. 10, no. 3, pp. 225-261, Sep. 1978. doi: 10.1145/356733.356735.

@@ -1,4 +1,8 @@
-# Case Study: CS-1 Tele Assistance System (TAS)
+# Case Study: Tele Assistance System (TAS)
+
+The Tele Assistance System (TAS) is a service-based self-adaptive exemplar for chronic-disease home care: a composite service that orchestrates three atomic services (*Drug*, *Medical Analysis*, *Alarm*) under a *MAPE-K* feedback loop, introduced by Weyns and Calinescu (2015) [1] as a reference case for the Self-Adaptive Systems (*SAS*) research community.
+
+## 1. Overview
 
 **Table CS1.1. *TAS* case specification.**
 
@@ -15,8 +19,6 @@
 |  **ACS designation**  | Architectural Case Study (ACS), descriptive with explanatory extension (per Runeson and Höst [4])                             |
 |      **QA lens**      | *Performance* vs. *Availability* (interpreting the authors' *Reliability* vs. *Cost* framing without changing numbers) |
 |       **Scope**       | Source-faithful description of*TAS* from its published documents; methodology-specific analysis is recorded elsewhere        |
-
-## 1. Summary
 
 **CS-1: Tele System (TAS).** A composite service that orchestrates three atomic services (*Drug*, *Medical Analysis*, *Alarm*) for home care of patients with chronic conditions, with diabetes as the canonical clinical example. *TAS* runs on the *ReSeP* platform and uses *ActivFORMS* as the adaptation engine. Weyns and Calinescu introduced *TAS* in 2015 [1] as a reference exemplar for the *SAS* research community, and the case has evolved through two later revisions (Weyns and Iftikhar 2016 [13], Cámara et al. 2023 [10]), giving a rich, decade-long baseline for like-for-like comparisons.
 
@@ -43,7 +45,7 @@ The case answers all five through explicit numeric targets (failure rate $R1 \le
 
 **Original-authors' research gap.** *TAS* was introduced to fill a well-documented gap in the *SAS* research community: the absence of shared, reproducible exemplars allowing researchers to compare adaptation approaches on equal footing. The exemplar standardises three things: a common service workflow, five generic adaptation scenarios drawn from the service-based self-adaptation literature, and four *QA* measurement metrics that let different research teams produce directly comparable figures on the same baseline.
 
-**Scope of this note.** No methodology-specific lens is applied here; the selection rationale is recorded in `ADR.01` under *Design Notes*.
+**Scope of this note.** No methodology-specific lens is applied here; the selection rationale is recorded in `ADR.01` under *Design Notes* (Section 5.2).
 
 <figure style="margin:0">
 <svg version="1.1" viewBox="0 0 2087 1456" width="100%" preserveAspectRatio="xMinYMin meet" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" role="img" aria-label="TAS context diagram showing patient wearable, composite service, atomic services, and external providers.">
@@ -54,7 +56,7 @@ The case answers all five through explicit numeric targets (failure rate $R1 \le
 
 Figure CS1.1. *TAS* context diagram.
 
-## 2. Technical Specifications
+## 2. Architecture
 
 **Case type.** Following Runeson and Höst [4], CS-1 is treated as a **descriptive case study with explanatory extension**. The descriptive part documents the architecture, platform, scenarios, and *QA* profile. The explanatory extension addresses causal claims about how *Retry* and *Select Reliable* affect reliability and cost under identical input profiles.
 
@@ -64,6 +66,106 @@ Figure CS1.1. *TAS* context diagram.
 - **RQ.2:** How does *TAS* realise self-adaptation, and what is the separation between the managed subsystem and the managing subsystem through probes and effectors?
 - **RQ.3:** How do the two adaptation strategies (*Retry* and *Select Reliable*) compare on the four quality attributes defined in [1] (*Reliability*, *Performance*, *Cost*, *Functionality*) and the three requirements in [10] (`R1`, `R2`, `R3`)?
 - **RQ.4:** Which architectural tactics from the Bass 3rd-edition catalogue [6] can be identified in the *TAS* design, and how are they realised through the *ReSeP* components?
+
+**Data collection methods.** Triangulation per Seaman [7] and Runeson-Höst [4]:
+
+- **Independent.** Source PDFs ([1], [2], [3], [10], [13]); public *ReSeP* source code, workflow XML files, service profiles, input profiles, and *UPPAAL* models from the self-adaptive exemplars website cited in [13].
+- **Indirect.** Probe and effector instrumentation hooks (`WorkflowProbe`, `WorkflowEffector`, `ServiceProfile.preInvokeOperation` / `postInvokeOperation`); *UPPAAL* simulation traces from [13] §V.
+- **Direct.** Not applicable: this is an archival reconstruction, not a live observation. No new experiments are run on *ReSeP* in this work.
+
+The reconstruction is divided into two architectural concerns per the self-adaptive-systems convention: the **Target System** (managed subsystem, the *TAS* composite service and its atomic services running on *ReSeP*) and the **Controller** (managing subsystem, the *MAPE-K* feedback loop realised by *ActivFORMS*).
+
+### 2.1 Logical Architecture: the TAS Workflow
+
+From Figure 1 of [1], the composite *TAS* service executes the following workflow in response to messages from a patient's wearable device:
+
+```
+loop:
+    pick task (pickTask)
+    if task = vitalParamsMsg:
+        MedicalAnalysisService.analyseData(data)
+        if result = changeDrug:    DrugService.changeDrug(patientId)
+        else if result = changeDose: DrugService.changeDose(patientId)
+        else if result = sendAlarm:  AlarmService.sendAlarm(patientId)
+    else if task = buttonMsg:
+        AlarmService.triggerAlarm(patientId)
+```
+
+The workflow exhibits three decision points that create non-trivial failure-propagation paths: the `analyseData` outcome branches into three operation classes (`changeDrug`, `changeDose`, `sendAlarm`), and the panic-button path bypasses the analysis step entirely to invoke `triggerAlarm` directly.
+
+<figure style="margin:0">
+<svg version="1.1" viewBox="0 0 2697 2036" width="100%" preserveAspectRatio="xMinYMin meet" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" role="img" aria-label="TAS workflow diagram showing pickTask loop, analyseData branching to changeDrug/changeDose/sendAlarm, and the direct triggerAlarm path from buttonMsg.">
+<clipPath id="clip_cs1_2"><path d="M0 0h2697v2036H0z"/></clipPath>
+<g clip-path="url(#clip_cs1_2)"><image xlink:href="img/cs_tas_workflow.svg" width="3210" height="2036"/></g>
+</svg>
+</figure>
+
+Figure CS1.2. *TAS* workflow, reconstructed from Figure 1 of [1].
+
+**Stochastic workflow parameterisation [13].** The original [1] paper leaves the user-action probabilities implicit. Weyns and Iftikhar [13] later publish a stochastic model of the *TAS* environment that fills this gap. Each time tick the user either triggers a vital-parameters sample with probability $p_{ANALYSIS}$ or presses the panic button with probability $p_{EMERGENCY} = 1 - p_{ANALYSIS}$. A typical evaluation setting in [13] uses $p_{EMERGENCY} = 0.25$ (one-quarter of ticks are emergency calls). After the *Medical Analysis Service* returns its result, approximately `66 %` of the non-`patientOK` outcomes route to the *Drug Service* (`changeDrug` or `changeDose`) and approximately `34 %` route to the *Alarm Service* (`sendAlarm`). These probabilities drive the stochastic-timed-automaton simulations used to estimate expected failure rate, cost, and service time at runtime.
+
+### 2.2 Runtime Architecture: ReSeP Components on the Managed Side
+
+*ReSeP* reifies the *SOA* (Service-Oriented Architecture) principles [1]. The classes below (reproduced from Figures 2 and 3 of [1]) constitute the managed subsystem:
+
+| **Class**        | **Role in the managed subsystem**                                                                              |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `AbstractService`    | Root of the service hierarchy; exposes `serviceName`, `startService()`, `stopService()`, `invokeOperation()` |
+| `AtomicService`      | Individual operation providers (*DrugService*, *MedicalAnalysisService*, *AlarmService*)                       |
+| `CompositeService`   | Orchestrating services (*TAS* itself); executes a workflow over atomic services                                    |
+| `ServiceRegistry`    | Lookup and registration of services and their `ServiceDescription` entries                                         |
+| `ServiceDescription` | Service metadata: id, endpoint,`operationList`, `customProperties` (QoS)                                         |
+| `ServiceCache`       | Local cache of available services per client;`refresh()` on demand                                                 |
+| `WorkflowEngine`     | Executes the workflow specification for a composite service                                                          |
+| `ServiceClient`      | Invokes composite services with QoS requirements                                                                     |
+| `InputProfile`       | Scripted sequence of invocations with predefined QoS requirements                                                    |
+
+<figure style="margin:0">
+<svg version="1.1" viewBox="0 0 2771 1698" width="100%" preserveAspectRatio="xMinYMin meet" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" role="img" aria-label="ReSeP service structure: CompositeService (TAS), three AtomicService instances (Drug, Medical Analysis, Alarm), ServiceRegistry, ServiceCache, and the WorkflowEngine.">
+<clipPath id="clip_cs1_3"><path d="M0 0h2771v1698H0z"/></clipPath>
+<g clip-path="url(#clip_cs1_3)"><image xlink:href="img/cs_tas_services.svg" width="3379" height="1698"/></g>
+</svg>
+</figure>
+
+Figure CS1.3. *ReSeP* service structure realising the *TAS* composite service, reconstructed from Figures 2 and 3 of [1].
+
+### 2.3 Controller: Managing Subsystem
+
+The *MAPE-K* feedback loop in *ReSeP* is realised through two hook classes that the managed subsystem exposes and two profile classes that parameterise experiments:
+
+| **Class**                     | **Role in the managing subsystem**                                                                   |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `Probe` / `WorkflowProbe`       | Senses workflow events (`workflowInvocationStarted`, `workflowInvocationCompleted`, `serviceFailed`) |
+| `Effector` / `WorkflowEffector` | Manipulates workflow state (`removeFailedService`, `setPreferredService`, `changeQoSRequirement`)    |
+| `ServiceProfile`                  | Hooks `preInvokeOperation` and `postInvokeOperation` to inject failure, delay, or cost behaviour       |
+| `InputProfile`                    | Scripted sequence of invocations with predefined QoS requirements                                          |
+
+The *ReSeP* effector set directly enables three of the five adaptation scenarios. Specifically, `removeFailedService` combined with `setPreferredService` implements `S1`; `setPreferredService` over response-time-annotated alternatives implements `S2`; `changeQoSRequirement` drives `S3`. Scenarios `S4` and `S5` require runtime rewriting of the workflow itself and therefore fall outside the published effector set. [1] implies full scenario coverage but does not document a workflow-rewriting effector; a follow-up extension would need to add one (for example, a `WorkflowEditor` effector operating on the `WorkflowEngine`).
+
+<figure style="margin:0">
+<svg version="1.1" viewBox="0 0 1613 1380" width="100%" preserveAspectRatio="xMinYMin meet" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" role="img" aria-label="Adaptability overview showing the MAPE-K feedback loop wrapping the managed TAS subsystem.">
+<clipPath id="clip_cs1_4"><path d="M0 0h1613v1380H0z"/></clipPath>
+<g clip-path="url(#clip_cs1_4)"><image xlink:href="img/cs_tas_adaptability.svg" width="2407" height="1380"/></g>
+</svg>
+</figure>
+
+Figure CS1.4. *TAS* adaptability overview: *MAPE-K* feedback loop over the managed subsystem.
+
+### 2.4 Adaptation Engine: ActivFORMS
+
+Iftikhar and Weyns developed *ActivFORMS* as a runtime environment for architecture-based adaptation with formal guarantees [2], [3]. The defining property that *ActivFORMS* brings to *TAS* is that the *MAPE-K* feedback loop is specified as a *UPPAAL* timed-automata model, verified at design time, and then directly executed at runtime rather than translated into code. The guarantees established by the model checker therefore carry over to execution without the usual code-generation gap.
+
+**UPPAAL stochastic-timed-automata models [13].** Where [1] summarises *ActivFORMS* at a high level, [13] publishes the full set of stochastic-timed-automata (*STA*) models used at runtime, distributed across five diagrams:
+
+- `Figure 4`, **Environment model**: encodes the stochastic user behaviour (`p_ANALYSIS` vs. `p_EMERGENCY` tick, post-analysis `66 % / 34 %` branch).
+- `Figure 5`, **Managed System model**: the *TAS* workflow as an *STA*, starting with `assignServices(AS, MAS, DS)` and tracking invocations via the `serviced?` signal.
+- `Figure 6`, **Quality model: failure rate**: *STA* computing average failure rate from the concrete service failure rates along the executed path.
+- `Figure 7`, **Quality model: cost**: *STA* computing average per-invocation cost in the same way.
+- `Figure 11`, **Quality model: service time**: *STA* computing average service time as the sum of response time and waiting time in queue along the executed path (introduced when the third quality is added).
+
+The full *UPPAAL* source is referenced by the project website cited in [13] but not reproduced in the paper.
+
+## 3. Quality attributes
 
 **Quality attributes under study.** Reproducing Table II of [1]:
 
@@ -94,6 +196,22 @@ Figure CS1.1. *TAS* context diagram.
 | `R3'` (three-quality extension) | Minimise `serviceTime`                                         | (not defined in [10])                                     |
 
 The `R2` dimension changes from cost to response time, and the `R3` objective inverts. Any comparison of adaptation strategies must declare which framing it uses.
+
+### 3.1 Headline Results
+
+Summary of the six-step experiment, reproduced from Table IV of [1]:
+
+| **Strategy**  | **Failure rate** | **Sequence failure rate** | **Cost** | **Invocations** |
+| ------------------- | :--------------------: | :-----------------------------: | :------------: | :-------------------: |
+| *No Adaptation*   |          0.18          |              0.22              |     8.12 K     |         1 561         |
+| *Retry*           |          0.11          |              0.13              |     9.95 K     |         1 981         |
+| *Select Reliable* |          0.00          |              0.00              |    11.04 K    |         1 984         |
+
+*Select Reliable* eliminates failures entirely at roughly `36 %` higher cost than *No Adaptation*. *Retry* halves the failure rate at roughly `22 %` higher cost. Neither strategy dominates; the choice depends on the stakeholder's *Reliability* vs. *Cost* utility function.
+
+Only scenario `S1` is quantified in Table IV of [1]. Weyns and Iftikhar [13] §V report a more substantial experimental setup for the same `S1`-style scenario: `10 000` invocations per experiment, `1 000`-invocation moving window, and boxplots for the relative standard error of the mean at $\text{RSEM} = 5\%$ and $\text{RSEM} = 10\%$. The $\text{RSEM} = 5\%$ setting roughly doubles the adaptation time of the $\text{RSEM} = 10\%$ setting, which is the source-documented accuracy-versus-latency trade-off of the simulation approach.
+
+## 4. Adaptation
 
 **Adaptation scenarios (Table I of [1]):**
 
@@ -148,93 +266,42 @@ The `R2` dimension changes from cost to response time, and the `R3` objective in
 | **Who**       | *MAPE-K* Controller                                                                             | *MAPE-K* Controller                                                  | *MAPE-K* Controller                                               | *MAPE-K* Controller (possibly human-in-the-loop for goal revision)         | *MAPE-K* Controller (possibly human-in-the-loop for design correction) |
 | **How**       | External centralised control with utility function over*Reliability*, *Performance*, *Cost* | External centralised control with utility function                     | External centralised control with dynamic discovery and re-planning | External centralised control with workflow-level re-planning                 | External centralised control with workflow-level re-planning             |
 
-## 3. Architectural Reconstruction
+### 4.1 Adaptation Strategies
 
-**Data collection methods.** Triangulation per Seaman [7] and Runeson-Höst [4]:
+Two *ActivFORMS* strategies are compared in [1]:
 
-- **Independent.** Source PDFs ([1], [2], [3], [10], [13]); public *ReSeP* source code, workflow XML files, service profiles, input profiles, and *UPPAAL* models from the self-adaptive exemplars website cited in [13].
-- **Indirect.** Probe and effector instrumentation hooks (`WorkflowProbe`, `WorkflowEffector`, `ServiceProfile.preInvokeOperation` / `postInvokeOperation`); *UPPAAL* simulation traces from [13] §V.
-- **Direct.** Not applicable: this is an archival reconstruction, not a live observation. No new experiments are run on *ReSeP* in this work.
+- **Retry.** On failure, the effector selects an alternative service from the cache and retries the operation. The retry count is bounded.
+- **Select Reliable.** On failure, an equivalent service is invoked in parallel to the primary. Each operation is attempted once; at least one success is sufficient.
 
-The reconstruction is divided into two architectural concerns per the self-adaptive-systems convention: the **Target System** (managed subsystem, the *TAS* composite service and its atomic services running on *ReSeP*) and the **Controller** (managing subsystem, the *MAPE-K* feedback loop realised by *ActivFORMS*).
+Both strategies rely on stateless atomic services so that parallel or retried invocations remain safe.
 
-### i. Logical Architecture: the TAS Workflow
+### 4.2 Tactics Identified (Bass 3rd ed. [6])
 
-From Figure 1 of [1], the composite *TAS* service executes the following workflow in response to messages from a patient's wearable device:
+The mapping is interpretive; only tactics verbatim from [6] are cited.
 
-```
-loop:
-    pick task (pickTask)
-    if task = vitalParamsMsg:
-        MedicalAnalysisService.analyseData(data)
-        if result = changeDrug:    DrugService.changeDrug(patientId)
-        else if result = changeDose: DrugService.changeDose(patientId)
-        else if result = sendAlarm:  AlarmService.sendAlarm(patientId)
-    else if task = buttonMsg:
-        AlarmService.triggerAlarm(patientId)
-```
+| **Bass tactic category (3rd ed.)**        | **Tactic**                     | **Realisation in TAS**                                                                                                           |
+| ----------------------------------------------- | ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------- |
+| *Availability*: Fault Detection               | Ping/Echo, Heartbeat, Exception      | `WorkflowProbe.serviceFailed` detects failed invocations; `postInvokeOperation` raises exceptions on profile-triggered failures    |
+| *Availability*: Recovery (Preparation/Repair) | Active Redundancy                    | *Select Reliable*: equivalent service invoked in parallel with the primary; consistent with the 3rd-edition definition (hot restart) |
+| *Availability*: Prevention                    | Removal from Service                 | `WorkflowEffector.removeFailedService` withdraws an unreliable service from the client's cache                                       |
+| *Modifiability*: Defer Binding                | Runtime Registration, Dynamic Lookup | `ServiceRegistry` and `ServiceCache` allow runtime discovery and replacement of services                                           |
+| *Performance*: Resource Management            | Maintain Multiple Copies             | Multiple equivalent atomic services (*Alarm 1/2/3*, *Medical 1/2/3*) reduce contention and raise reliability                       |
+| *Performance*: Resource Demand                | Control Frequency of Sampling        | `InputProfile` throttles the invocation rate of the composite service                                                                |
 
-The workflow exhibits three decision points that create non-trivial failure-propagation paths: the `analyseData` outcome branches into three operation classes (`changeDrug`, `changeDose`, `sendAlarm`), and the panic-button path bypasses the analysis step entirely to invoke `triggerAlarm` directly.
+The *Retry* strategy of [1] does not map to a single 3rd-edition tactic. It is realised as a composition of `Exception` detection via `WorkflowProbe.serviceFailed`, `Removal from Service` via `WorkflowEffector.removeFailedService`, and `Dynamic Lookup` through the `ServiceCache`. Bass 4th edition introduces `Retry` as a named tactic under *Recover from Faults*, *Preparation and Repair*, but this work stays with the 3rd edition [6] and describes the strategy as a composition rather than renaming it.
 
-<figure style="margin:0">
-<svg version="1.1" viewBox="0 0 2697 2036" width="100%" preserveAspectRatio="xMinYMin meet" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" role="img" aria-label="TAS workflow diagram showing pickTask loop, analyseData branching to changeDrug/changeDose/sendAlarm, and the direct triggerAlarm path from buttonMsg.">
-<clipPath id="clip_cs1_2"><path d="M0 0h2697v2036H0z"/></clipPath>
-<g clip-path="url(#clip_cs1_2)"><image xlink:href="img/cs_tas_workflow.svg" width="3210" height="2036"/></g>
-</svg>
-</figure>
+### 4.3 Self-* Properties Exercised
 
-Figure CS1.2. *TAS* workflow, reconstructed from Figure 1 of [1].
+Mapping the exemplar onto the IBM autonomic computing taxonomy, *TAS* exercises four self-* properties.
 
-**Stochastic workflow parameterisation [13].** The original [1] paper leaves the user-action probabilities implicit. Weyns and Iftikhar [13] later publish a stochastic model of the *TAS* environment that fills this gap. Each time tick the user either triggers a vital-parameters sample with probability $p_{ANALYSIS}$ or presses the panic button with probability $p_{EMERGENCY} = 1 - p_{ANALYSIS}$. A typical evaluation setting in [13] uses $p_{EMERGENCY} = 0.25$ (one-quarter of ticks are emergency calls). After the *Medical Analysis Service* returns its result, approximately `66 %` of the non-`patientOK` outcomes route to the *Drug Service* (`changeDrug` or `changeDose`) and approximately `34 %` route to the *Alarm Service* (`sendAlarm`). These probabilities drive the stochastic-timed-automaton simulations used to estimate expected failure rate, cost, and service time at runtime.
+- ***Self-Healing***: discovers failures in external services through `WorkflowProbe.serviceFailed` and replaces them through `WorkflowEffector.setPreferredService`.
+- ***Self-Optimization***: realised by the `Planner`'s utility function that trades off response time, failure rate, and invocation cost.
+- ***Self-Awareness***: the probes continuously monitor the *QAs* listed in Section 3 (*Quality attributes*), across both the [1] Table II definition and the [10] revision that drops *Functionality* and adds *Service response time* under *Performance*.
+- ***Context-Awareness***: realised by the `ServiceCache`, which tracks the metrics of external service providers so that adaptation decisions depend on the current state of the environment.
 
-### ii. Runtime Architecture: ReSeP Components on the Managed Side
+## 5. Operating point and parameters
 
-*ReSeP* reifies the *SOA* (Service-Oriented Architecture) principles [1]. The classes below (reproduced from Figures 2 and 3 of [1]) constitute the managed subsystem:
-
-| **Class**        | **Role in the managed subsystem**                                                                              |
-| ---------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| `AbstractService`    | Root of the service hierarchy; exposes `serviceName`, `startService()`, `stopService()`, `invokeOperation()` |
-| `AtomicService`      | Individual operation providers (*DrugService*, *MedicalAnalysisService*, *AlarmService*)                       |
-| `CompositeService`   | Orchestrating services (*TAS* itself); executes a workflow over atomic services                                    |
-| `ServiceRegistry`    | Lookup and registration of services and their `ServiceDescription` entries                                         |
-| `ServiceDescription` | Service metadata: id, endpoint,`operationList`, `customProperties` (QoS)                                         |
-| `ServiceCache`       | Local cache of available services per client;`refresh()` on demand                                                 |
-| `WorkflowEngine`     | Executes the workflow specification for a composite service                                                          |
-| `ServiceClient`      | Invokes composite services with QoS requirements                                                                     |
-| `InputProfile`       | Scripted sequence of invocations with predefined QoS requirements                                                    |
-
-<figure style="margin:0">
-<svg version="1.1" viewBox="0 0 2771 1698" width="100%" preserveAspectRatio="xMinYMin meet" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" role="img" aria-label="ReSeP service structure: CompositeService (TAS), three AtomicService instances (Drug, Medical Analysis, Alarm), ServiceRegistry, ServiceCache, and the WorkflowEngine.">
-<clipPath id="clip_cs1_3"><path d="M0 0h2771v1698H0z"/></clipPath>
-<g clip-path="url(#clip_cs1_3)"><image xlink:href="img/cs_tas_services.svg" width="3379" height="1698"/></g>
-</svg>
-</figure>
-
-Figure CS1.3. *ReSeP* service structure realising the *TAS* composite service, reconstructed from Figures 2 and 3 of [1].
-
-### iii. Controller: Managing Subsystem
-
-The *MAPE-K* feedback loop in *ReSeP* is realised through two hook classes that the managed subsystem exposes and two profile classes that parameterise experiments:
-
-| **Class**                     | **Role in the managing subsystem**                                                                   |
-| ----------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `Probe` / `WorkflowProbe`       | Senses workflow events (`workflowInvocationStarted`, `workflowInvocationCompleted`, `serviceFailed`) |
-| `Effector` / `WorkflowEffector` | Manipulates workflow state (`removeFailedService`, `setPreferredService`, `changeQoSRequirement`)    |
-| `ServiceProfile`                  | Hooks `preInvokeOperation` and `postInvokeOperation` to inject failure, delay, or cost behaviour       |
-| `InputProfile`                    | Scripted sequence of invocations with predefined QoS requirements                                          |
-
-The *ReSeP* effector set directly enables three of the five adaptation scenarios. Specifically, `removeFailedService` combined with `setPreferredService` implements `S1`; `setPreferredService` over response-time-annotated alternatives implements `S2`; `changeQoSRequirement` drives `S3`. Scenarios `S4` and `S5` require runtime rewriting of the workflow itself and therefore fall outside the published effector set. [1] implies full scenario coverage but does not document a workflow-rewriting effector; a follow-up extension would need to add one (for example, a `WorkflowEditor` effector operating on the `WorkflowEngine`).
-
-<figure style="margin:0">
-<svg version="1.1" viewBox="0 0 1613 1380" width="100%" preserveAspectRatio="xMinYMin meet" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" role="img" aria-label="Adaptability overview showing the MAPE-K feedback loop wrapping the managed TAS subsystem.">
-<clipPath id="clip_cs1_4"><path d="M0 0h1613v1380H0z"/></clipPath>
-<g clip-path="url(#clip_cs1_4)"><image xlink:href="img/cs_tas_adaptability.svg" width="2407" height="1380"/></g>
-</svg>
-</figure>
-
-Figure CS1.4. *TAS* adaptability overview: *MAPE-K* feedback loop over the managed subsystem.
-
-### iv. Services, Profiles, and Costs
+### 5.1 Services, Profiles, and Costs
 
 **Original 7-service catalogue (Table III of [1]):**
 
@@ -266,8 +333,8 @@ Figure CS1.4. *TAS* adaptability overview: *MAPE-K* feedback loop over the manag
 
 **Workflow probabilities (from [13] Figure 1, reproduced in our `_routs["baseline"]` matrix):**
 
-- `0.75` of requests are vital-parameter checks (`TAS_1 → TAS_2`, dispatched to the *MAS* pool); `0.25` are emergency calls via the panic button (`TAS_1 → TAS_3`, dispatched to the *AS* pool).
-- After medical analysis (`TAS_4`): `0.66` invoke the drug service (`TAS_4 → DS`); `0.34` route to the alarm service (`TAS_4 → TAS_3`, re-entering the *AS* dispatch).
+- `0.75` of requests are vital-parameter checks (`TAS_1 -> TAS_2`, dispatched to the *MAS* pool); `0.25` are emergency calls via the panic button (`TAS_1 -> TAS_3`, dispatched to the *AS* pool).
+- After medical analysis (`TAS_4`): `0.66` invoke the drug service (`TAS_4 -> DS`); `0.34` route to the alarm service (`TAS_4 -> TAS_3`, re-entering the *AS* dispatch).
 
 **Two types of uncertainty [13] Section III:**
 
@@ -298,135 +365,7 @@ Alongside the services, [10] introduces two architectural design parameters that
 
 When a later analysis cites *TAS* service parameters, it must state which profile (`2015`, `2016`, or `2023`) it uses, and if `2023`, which variant (*V1* or *V2*), to avoid silent mixing of the four options.
 
-### v. Adaptation Engine: ActivFORMS
-
-Iftikhar and Weyns developed *ActivFORMS* as a runtime environment for architecture-based adaptation with formal guarantees [2], [3]. The defining property that *ActivFORMS* brings to *TAS* is that the *MAPE-K* feedback loop is specified as a *UPPAAL* timed-automata model, verified at design time, and then directly executed at runtime rather than translated into code. The guarantees established by the model checker therefore carry over to execution without the usual code-generation gap.
-
-**UPPAAL stochastic-timed-automata models [13].** Where [1] summarises *ActivFORMS* at a high level, [13] publishes the full set of stochastic-timed-automata (*STA*) models used at runtime, distributed across five diagrams:
-
-- `Figure 4`, **Environment model**: encodes the stochastic user behaviour (`p_ANALYSIS` vs. `p_EMERGENCY` tick, post-analysis `66 % / 34 %` branch).
-- `Figure 5`, **Managed System model**: the *TAS* workflow as an *STA*, starting with `assignServices(AS, MAS, DS)` and tracking invocations via the `serviced?` signal.
-- `Figure 6`, **Quality model: failure rate**: *STA* computing average failure rate from the concrete service failure rates along the executed path.
-- `Figure 7`, **Quality model: cost**: *STA* computing average per-invocation cost in the same way.
-- `Figure 11`, **Quality model: service time**: *STA* computing average service time as the sum of response time and waiting time in queue along the executed path (introduced when the third quality is added).
-
-The full *UPPAAL* source is referenced by the project website cited in [13] but not reproduced in the paper.
-
-### vi. Adaptation Strategies
-
-Two *ActivFORMS* strategies are compared in [1]:
-
-- **Retry.** On failure, the effector selects an alternative service from the cache and retries the operation. The retry count is bounded.
-- **Select Reliable.** On failure, an equivalent service is invoked in parallel to the primary. Each operation is attempted once; at least one success is sufficient.
-
-Both strategies rely on stateless atomic services so that parallel or retried invocations remain safe.
-
-### vii. Headline Results
-
-Summary of the six-step experiment, reproduced from Table IV of [1]:
-
-| **Strategy**  | **Failure rate** | **Sequence failure rate** | **Cost** | **Invocations** |
-| ------------------- | :--------------------: | :-----------------------------: | :------------: | :-------------------: |
-| *No Adaptation*   |          0.18          |              0.22              |     8.12 K     |         1 561         |
-| *Retry*           |          0.11          |              0.13              |     9.95 K     |         1 981         |
-| *Select Reliable* |          0.00          |              0.00              |    11.04 K    |         1 984         |
-
-*Select Reliable* eliminates failures entirely at roughly `36 %` higher cost than *No Adaptation*. *Retry* halves the failure rate at roughly `22 %` higher cost. Neither strategy dominates; the choice depends on the stakeholder's *Reliability* vs. *Cost* utility function.
-
-Only scenario `S1` is quantified in Table IV of [1]. Weyns and Iftikhar [13] §V report a more substantial experimental setup for the same `S1`-style scenario: `10 000` invocations per experiment, `1 000`-invocation moving window, and boxplots for the relative standard error of the mean at $\text{RSEM} = 5\%$ and $\text{RSEM} = 10\%$. The $\text{RSEM} = 5\%$ setting roughly doubles the adaptation time of the $\text{RSEM} = 10\%$ setting, which is the source-documented accuracy-versus-latency trade-off of the simulation approach.
-
-### viii. Tactics Identified (Bass 3rd ed. [6])
-
-The mapping is interpretive; only tactics verbatim from [6] are cited.
-
-| **Bass tactic category (3rd ed.)**        | **Tactic**                     | **Realisation in TAS**                                                                                                           |
-| ----------------------------------------------- | ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------- |
-| *Availability*: Fault Detection               | Ping/Echo, Heartbeat, Exception      | `WorkflowProbe.serviceFailed` detects failed invocations; `postInvokeOperation` raises exceptions on profile-triggered failures    |
-| *Availability*: Recovery (Preparation/Repair) | Active Redundancy                    | *Select Reliable*: equivalent service invoked in parallel with the primary; consistent with the 3rd-edition definition (hot restart) |
-| *Availability*: Prevention                    | Removal from Service                 | `WorkflowEffector.removeFailedService` withdraws an unreliable service from the client's cache                                       |
-| *Modifiability*: Defer Binding                | Runtime Registration, Dynamic Lookup | `ServiceRegistry` and `ServiceCache` allow runtime discovery and replacement of services                                           |
-| *Performance*: Resource Management            | Maintain Multiple Copies             | Multiple equivalent atomic services (*Alarm 1/2/3*, *Medical 1/2/3*) reduce contention and raise reliability                       |
-| *Performance*: Resource Demand                | Control Frequency of Sampling        | `InputProfile` throttles the invocation rate of the composite service                                                                |
-
-The *Retry* strategy of [1] does not map to a single 3rd-edition tactic. It is realised as a composition of `Exception` detection via `WorkflowProbe.serviceFailed`, `Removal from Service` via `WorkflowEffector.removeFailedService`, and `Dynamic Lookup` through the `ServiceCache`. Bass 4th edition introduces `Retry` as a named tactic under *Recover from Faults*, *Preparation and Repair*, but this work stays with the 3rd edition [6] and describes the strategy as a composition rather than renaming it.
-
-### ix. Self-* Properties Exercised
-
-Mapping the exemplar onto the IBM autonomic computing taxonomy, *TAS* exercises four self-* properties.
-
-- ***Self-Healing***: discovers failures in external services through `WorkflowProbe.serviceFailed` and replaces them through `WorkflowEffector.setPreferredService`.
-- ***Self-Optimization***: realised by the `Planner`'s utility function that trades off response time, failure rate, and invocation cost.
-- ***Self-Awareness***: the probes continuously monitor the *QAs* listed in *Technical Specifications*, across both the [1] Table II definition and the [10] revision that drops *Functionality* and adds *Service response time* under *Performance*.
-- ***Context-Awareness***: realised by the `ServiceCache`, which tracks the metrics of external service providers so that adaptation decisions depend on the current state of the environment.
-
-### x. Cross-Source Inconsistencies
-
-Per `ADR.06`, [1] is authoritative. The table below logs every systematic disagreement between [1], [13], and [10]. The *ActivFORMS* papers [2], [3] do not appear because they use non-*TAS* illustrative examples.
-
-| **#** | **Aspect**                | **[1] 2015**                                                        | **[13] 2016**                                                                               | **[10] 2023**                                              | **Resolution**                                                          |
-| :---------: | ------------------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-|      1      | Service count                   | Seven services (3 Alarm + 3 Medical Analysis + 1 Drug)                    | Fifteen services (5 AS + 5 MAS + 5 DS)                                                            | Nine services (3 Alarm + 5 Medical + 1 Drug)                     | All three preserved.                                                          |
-|      2      | Service naming                  | `Alarm Service 1`, `Medical Analysis Service 1`, `Drug Service 1`   | `AS`, `MAS`, `DS` abbreviations with numbered instances                                     | `(AS1) Alarm S.1`, `(S1) Medical S.1`, `(D1) Drug S.1`     | Each table uses the source's own naming.                                      |
-|      3      | Failure-rate unit               | Decimal, not stated                                                       | `F_rate` column, no `%`                                                                       | `Fail rate (%)` explicit                                       | [10] disambiguates.                                                           |
-|      4      | Cost unit                       | Unlabelled                                                                | Unlabelled                                                                                        | `Cost (usd)`                                                   | [10] confirms USD.                                                            |
-|      5      | Response time and service time  | Absent                                                                    | Response time and queue length per service;`Service Time = Response Time + Waiting Time`        | Added column `Resp time (ms.)`                                 | Each paper adds a different level of detail.                                  |
-|      6      | Quality framing                 | Four QAs with six metrics (Reliability, Performance, Cost, Functionality) | Three requirements `R1/R2/R3` cost-centred                                                      | Three requirements `R1/R2/R3` response-time-centred            | All three views preserved.                                                    |
-|      7      | Numeric targets                 | Not stated                                                                | `R1: 0.15 × 10⁻³` failureRate, `R2: 8 × 10⁻³` averageCost                               | `R1: 0.03 %`, `R2: 26 ms`, `R3: minimise cost s.t. R1, R2` | Both target sets attributed to their source; not interchangeable.             |
-|      8      | `R3` objective                | Not defined                                                               | Minimise `failureRate` (or `serviceTime` in [13] §V-C)                                       | Minimise `cost`                                                | Objective inverts between [13] and [10].                                      |
-|      9      | Architectural design parameters | Implicit                                                                  | Implicit                                                                                          | `MAX_TIMEOUTS` and `timeout length` named explicitly         | [10] names these.                                                             |
-|     10     | Number of versions              | One                                                                       | One setting                                                                                       | `TAS V1` and `TAS V2` studied separately                     | [10] publishes both.                                                          |
-|     11     | Workflow user model             | Not stated                                                                | `p_ANALYSIS`, `p_EMERGENCY = 1 − p_ANALYSIS`, `25 %` emergency, `66 % / 34 %` drug/alarm | Not re-stated                                                    | [13] fills the gap.                                                           |
-|     12     | Scenario IDs                    | `S1`-`S5` in [1] Table I                                              | Narrative names                                                                                   | Narrative names                                                  | `S1`-`S5` is primary.                                                     |
-|     13     | Scenario coverage in experiment | Table IV:`No Adaptation`, `Retry`, `Select Reliable` on `S1`      | Simulation results for failure-rate and cost targets                                              | Analytical method, not per-scenario outcomes                     | [1] Table IV is the authoritative baseline; [13] adds more statistical power. |
-
-## 4. Limits
-
-Because this is an archival reconstruction, each validity dimension is read twice. We separate (a) inherited threats from the original study and (b) threats introduced by our reconstruction.
-
-### i. Construct validity: are we describing TAS for what it really is?
-
-- **Inherited threat.** The *Reliability* metric counts raw failed invocations; a single sequence failure may involve several atomic-service failures. **Mitigation:** *Headline Results* tabulates both rates.
-- **Threat to our reconstruction.** The Bass tactic mapping is our interpretation. **Mitigation:** only tactics verbatim from [6].
-- **Residual risk.** The *Cost* metric uses nominal per-invocation prices from the exemplar, not real pricing.
-
-### ii. Internal validity: do the causal claims actually hold?
-
-- **Inherited threat.** [1] experiments use slightly different invocation counts (`1 981` vs. `1 984`). **Mitigation:** per-invocation normalisation preserves ordering.
-- **Inherited threat.** Each strategy ran once over `500` messages in [1]. A zero-failure rate over `500` samples is not the same as zero failure probability. **Consequence:** perfect reliability claims should be read as "no failure observed in a `500`-message run". [13] §V-B extends this to `10 000` invocations.
-- **Threat to our reconstruction.** We infer causal stories from [1] without re-running; any reporting error in [1] is inherited.
-
-### iii. External validity: how far can conclusions transfer?
-
-- **In scope.** Service-based self-adaptive systems with a composite workflow, replaceable atomic services with quantified QoS, and a *MAPE-K* loop over the workflow engine.
-- **Out of scope.** Event-driven, data-intensive, or safety-critical systems where atomic operations are stateful.
-- **Simplification threat.** *TAS* uses a simplified patient model. A real clinical deployment would face correlated event bursts and regulatory constraints.
-
-### iv. Reliability: can someone else produce the same reconstruction?
-
-- **Supports replication.** All source code, workflow XML files, service profiles, input profiles, and *UPPAAL* models are publicly available from the self-adaptive exemplars website.
-- **Threat to exact replication.** The service-profile generator is stochastic but the paper does not state the random-number seed.
-- **Threat to our reconstruction.** The tactic mapping and the two-abstraction-level decomposition are our interpretive choices. **Mitigation:** exposed in the *ADRs* below.
-
-## 5. Insights
-
-### i. Lessons on the TAS architecture
-
-- **L1.** The explicit separation of **managed** subsystem (*CompositeService*, *AtomicService* instances, *WorkflowEngine*) from **managing** subsystem (probes, effectors, *MAPE-K* loop) is the central architectural decision that makes *TAS* reusable as an exemplar.
-- **L2.** Service profiles (`preInvokeOperation` / `postInvokeOperation`) are a clean mechanism for injecting failure, delay, and cost behaviour without modifying service implementations.
-- **L3.** Input profiles decouple the stimulus pattern from the system under test, which is the key reason third parties can replicate *TAS* experiments exactly.
-
-### ii. Lessons on adaptation strategies
-
-- **L4.** *Retry* and *Select Reliable* represent a classic *Reliability* vs. *Cost* trade-off: *Retry* is cheaper but less reliable; *Select Reliable* is most reliable but most expensive.
-- **L5.** *Select Reliable* achieves perfect reliability only when the simultaneous invocation is truly independent, which *ReSeP* guarantees for stateless idempotent operations. For stateful operations *Select Reliable* would need a compensation or voting tactic.
-- **L6.** *ActivFORMS* offers formal guarantees at runtime because the *UPPAAL* model is executed directly, not code-generated. This is a distinct architectural stance from code-generated controllers.
-
-### iii. Lessons on case-study reporting
-
-- **L7.** The published input profile as a separable artefact lets third parties replicate the exact stimulus pattern used to generate published metrics.
-- **L8.** The service-profile table (Table III of [1] or Table 1a of [10]) with explicit failure rates and costs is the single most useful artefact for anyone comparing a new adaptation approach against published baselines.
-
-## 6. Design Notes
+### 5.2 Design Notes
 
 Following Wohlin [8], we log the principal decisions that shape how this case study is framed as Architectural Decision Records (*ADRs*).
 
@@ -474,7 +413,74 @@ Following Wohlin [8], we log the principal decisions that shape how this case st
 - **P4 (`S3`-`S5` via ReSeP effectors).** Only `S1`, `S2`, `S3` supported by the published effector set; `S4` and `S5` require a workflow-rewriting effector that [1] does not document.
 - **P5 (`V1` vs `V2` differences).** *V1* uses `AS3` as dominant secondary split; *V2* elevates `AS1`, `AS2`, `AS3` to joint significance. Both share the nine-service catalogue and `R1`-`R3` requirements.
 
-## REFERENCES
+## 6. Limits of the source material
+
+Because this is an archival reconstruction, each validity dimension is read twice. We separate (a) inherited threats from the original study and (b) threats introduced by our reconstruction.
+
+### 6.1 Construct validity: are we describing TAS for what it really is?
+
+- **Inherited threat.** The *Reliability* metric counts raw failed invocations; a single sequence failure may involve several atomic-service failures. **Mitigation:** *Headline Results* tabulates both rates.
+- **Threat to our reconstruction.** The Bass tactic mapping is our interpretation. **Mitigation:** only tactics verbatim from [6].
+- **Residual risk.** The *Cost* metric uses nominal per-invocation prices from the exemplar, not real pricing.
+
+### 6.2 Internal validity: do the causal claims actually hold?
+
+- **Inherited threat.** [1] experiments use slightly different invocation counts (`1 981` vs. `1 984`). **Mitigation:** per-invocation normalisation preserves ordering.
+- **Inherited threat.** Each strategy ran once over `500` messages in [1]. A zero-failure rate over `500` samples is not the same as zero failure probability. **Consequence:** perfect reliability claims should be read as "no failure observed in a `500`-message run". [13] §V-B extends this to `10 000` invocations.
+- **Threat to our reconstruction.** We infer causal stories from [1] without re-running; any reporting error in [1] is inherited.
+
+### 6.3 External validity: how far can conclusions transfer?
+
+- **In scope.** Service-based self-adaptive systems with a composite workflow, replaceable atomic services with quantified QoS, and a *MAPE-K* loop over the workflow engine.
+- **Out of scope.** Event-driven, data-intensive, or safety-critical systems where atomic operations are stateful.
+- **Simplification threat.** *TAS* uses a simplified patient model. A real clinical deployment would face correlated event bursts and regulatory constraints.
+
+### 6.4 Reliability: can someone else produce the same reconstruction?
+
+- **Supports replication.** All source code, workflow XML files, service profiles, input profiles, and *UPPAAL* models are publicly available from the self-adaptive exemplars website.
+- **Threat to exact replication.** The service-profile generator is stochastic but the paper does not state the random-number seed.
+- **Threat to our reconstruction.** The tactic mapping and the two-abstraction-level decomposition are our interpretive choices. **Mitigation:** exposed in the *Design Notes* ADRs (Section 5.2).
+
+### 6.5 Cross-Source Inconsistencies
+
+Per `ADR.06`, [1] is authoritative. The table below logs every systematic disagreement between [1], [13], and [10]. The *ActivFORMS* papers [2], [3] do not appear because they use non-*TAS* illustrative examples.
+
+| **#** | **Aspect**                | **[1] 2015**                                                        | **[13] 2016**                                                                               | **[10] 2023**                                              | **Resolution**                                                          |
+| :---------: | ------------------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+|      1      | Service count                   | Seven services (3 Alarm + 3 Medical Analysis + 1 Drug)                    | Fifteen services (5 AS + 5 MAS + 5 DS)                                                            | Nine services (3 Alarm + 5 Medical + 1 Drug)                     | All three preserved.                                                          |
+|      2      | Service naming                  | `Alarm Service 1`, `Medical Analysis Service 1`, `Drug Service 1`   | `AS`, `MAS`, `DS` abbreviations with numbered instances                                     | `(AS1) Alarm S.1`, `(S1) Medical S.1`, `(D1) Drug S.1`     | Each table uses the source's own naming.                                      |
+|      3      | Failure-rate unit               | Decimal, not stated                                                       | `F_rate` column, no `%`                                                                       | `Fail rate (%)` explicit                                       | [10] disambiguates.                                                           |
+|      4      | Cost unit                       | Unlabelled                                                                | Unlabelled                                                                                        | `Cost (usd)`                                                   | [10] confirms USD.                                                            |
+|      5      | Response time and service time  | Absent                                                                    | Response time and queue length per service;`Service Time = Response Time + Waiting Time`        | Added column `Resp time (ms.)`                                 | Each paper adds a different level of detail.                                  |
+|      6      | Quality framing                 | Four QAs with six metrics (Reliability, Performance, Cost, Functionality) | Three requirements `R1/R2/R3` cost-centred                                                      | Three requirements `R1/R2/R3` response-time-centred            | All three views preserved.                                                    |
+|      7      | Numeric targets                 | Not stated                                                                | `R1: 0.15 × 10⁻³` failureRate, `R2: 8 × 10⁻³` averageCost                               | `R1: 0.03 %`, `R2: 26 ms`, `R3: minimise cost s.t. R1, R2` | Both target sets attributed to their source; not interchangeable.             |
+|      8      | `R3` objective                | Not defined                                                               | Minimise `failureRate` (or `serviceTime` in [13] §V-C)                                       | Minimise `cost`                                                | Objective inverts between [13] and [10].                                      |
+|      9      | Architectural design parameters | Implicit                                                                  | Implicit                                                                                          | `MAX_TIMEOUTS` and `timeout length` named explicitly         | [10] names these.                                                             |
+|     10     | Number of versions              | One                                                                       | One setting                                                                                       | `TAS V1` and `TAS V2` studied separately                     | [10] publishes both.                                                          |
+|     11     | Workflow user model             | Not stated                                                                | `p_ANALYSIS`, `p_EMERGENCY = 1 − p_ANALYSIS`, `25 %` emergency, `66 % / 34 %` drug/alarm | Not re-stated                                                    | [13] fills the gap.                                                           |
+|     12     | Scenario IDs                    | `S1`-`S5` in [1] Table I                                              | Narrative names                                                                                   | Narrative names                                                  | `S1`-`S5` is primary.                                                     |
+|     13     | Scenario coverage in experiment | Table IV:`No Adaptation`, `Retry`, `Select Reliable` on `S1`      | Simulation results for failure-rate and cost targets                                              | Analytical method, not per-scenario outcomes                     | [1] Table IV is the authoritative baseline; [13] adds more statistical power. |
+
+### 6.6 Insights
+
+#### i. Lessons on the TAS architecture
+
+- **L1.** The explicit separation of **managed** subsystem (*CompositeService*, *AtomicService* instances, *WorkflowEngine*) from **managing** subsystem (probes, effectors, *MAPE-K* loop) is the central architectural decision that makes *TAS* reusable as an exemplar.
+- **L2.** Service profiles (`preInvokeOperation` / `postInvokeOperation`) are a clean mechanism for injecting failure, delay, and cost behaviour without modifying service implementations.
+- **L3.** Input profiles decouple the stimulus pattern from the system under test, which is the key reason third parties can replicate *TAS* experiments exactly.
+
+#### ii. Lessons on adaptation strategies
+
+- **L4.** *Retry* and *Select Reliable* represent a classic *Reliability* vs. *Cost* trade-off: *Retry* is cheaper but less reliable; *Select Reliable* is most reliable but most expensive.
+- **L5.** *Select Reliable* achieves perfect reliability only when the simultaneous invocation is truly independent, which *ReSeP* guarantees for stateless idempotent operations. For stateful operations *Select Reliable* would need a compensation or voting tactic.
+- **L6.** *ActivFORMS* offers formal guarantees at runtime because the *UPPAAL* model is executed directly, not code-generated. This is a distinct architectural stance from code-generated controllers.
+
+#### iii. Lessons on case-study reporting
+
+- **L7.** The published input profile as a separable artefact lets third parties replicate the exact stimulus pattern used to generate published metrics.
+- **L8.** The service-profile table (Table III of [1] or Table 1a of [10]) with explicit failure rates and costs is the single most useful artefact for anyone comparing a new adaptation approach against published baselines.
+
+## References
 
 [1] D. Weyns and R. Calinescu, "Tele Assistance: A Self-Adaptive Service-Based System Exemplar," in *Proceedings of the 10th International Symposium on Software Engineering for Adaptive and Self-Managing Systems (SEAMS 2015)*, Florence, Italy, May 2015, pp. 88-92. doi: 10.1109/SEAMS.2015.27.
 
